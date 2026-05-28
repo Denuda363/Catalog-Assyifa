@@ -1,0 +1,6 @@
+{
+  "name": "Katalog Apotek Assyifa Farma",
+  "description": "Katalog Harga Obat dan Promo resmi Apotek Assyifa Farma Cideres dengan fitur pengamanan Room Control PIN.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
