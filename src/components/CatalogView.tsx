@@ -90,13 +90,6 @@ function MedicineCard({ med, idx, getClassificationStyles, setSelectedMedicine }
               <span className={`w-1 h-1 rounded-full mr-1 ${styles.dot}`}></span>
               {med.category}
             </span>
-
-            {/* Stock status indicator */}
-            {med.stockStatus !== 'Tersedia' && (
-              <span className="text-[8px] sm:text-[9px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded flex items-center gap-0.5 border border-rose-100">
-                <AlertTriangle size={8} /> Habis
-              </span>
-            )}
           </div>
 
           {/* Medicine Name */}
@@ -188,7 +181,6 @@ function MedicineCard({ med, idx, getClassificationStyles, setSelectedMedicine }
 export default function CatalogView({ medicines, settings, selectedMedicine, setSelectedMedicine }: CatalogViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Semua');
-  const [stockFilter, setStockFilter] = useState('Semua');
   const [sortOption, setSortOption] = useState('name-asc');
   const [selectedModalUnit, setSelectedModalUnit] = useState<string>('');
 
@@ -274,13 +266,6 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
       result = result.filter((m) => m.category === selectedCategory);
     }
 
-    // Stock Filter
-    if (stockFilter === 'Tersedia') {
-      result = result.filter((m) => m.stockStatus === 'Tersedia');
-    } else if (stockFilter === 'Kosong') {
-      result = result.filter((m) => m.stockStatus === 'Kosong');
-    }
-
     // Sorting
     result.sort((a, b) => {
       const priceA = a.isPromo && a.promoPrice ? a.promoPrice : a.price;
@@ -301,12 +286,11 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
     });
 
     return result;
-  }, [medicines, searchTerm, selectedCategory, stockFilter, sortOption]);
+  }, [medicines, searchTerm, selectedCategory, sortOption]);
 
   const resetFilters = () => {
     setSearchTerm('');
     setSelectedCategory('Semua');
-    setStockFilter('Semua');
     setSortOption('name-asc');
   };
 
@@ -316,7 +300,7 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
     const chosenUnit = selectedModalUnit || med.baseUnit || 'Lembar';
     const chosenMultiplierText = modalMultiplier > 1 ? ` (Isi ${modalMultiplier} ${med.baseUnit || 'Lembar'})` : '';
 
-    const text = `Halo Apotek Assyifa Farma Cideres, saya ingin menanyakan/memesan obat berikut:\n\n*Nama Obat:* ${med.name}\n*Kategori:* ${med.category}\n*Satuan Pesanan:* ${chosenUnit}${chosenMultiplierText}\n*Harga:* ${formatRupiah(finalPrice)} (Konversi Otomatis)\n*Status:* ${med.stockStatus}\n\nApakah stok masih ada? Terima kasih.`;
+    const text = `Halo Apotek Assyifa Farma Cideres, saya ingin menanyakan/memesan obat berikut:\n\n*Nama Obat:* ${med.name}\n*Kategori:* ${med.category}\n*Satuan Pesanan:* ${chosenUnit}${chosenMultiplierText}\n*Harga:* ${formatRupiah(finalPrice)} (Konversi Otomatis)\n\nApakah stok masih ada? Terima kasih.`;
     const encodedText = encodeURIComponent(text);
     const whatsappUrl = `https://wa.me/${settings.whatsappNumber}?text=${encodedText}`;
     window.open(whatsappUrl, '_blank');
@@ -331,7 +315,6 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
             <CheckCircle size={16} />
           </div>
           <div>
-            <h4 className="font-extrabold text-blue-900 text-xs uppercase tracking-wider mb-1">SAMBUTAN APOTEK ASSYIFA FARMA:</h4>
             <p className="text-xs sm:text-sm text-slate-700 font-medium whitespace-pre-wrap">{settings.greetingCatalog}</p>
           </div>
         </div>
@@ -527,23 +510,6 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
                       </span>
                     )}
                   </div>
-
-                  {selectedMedicine.stockStatus !== 'Tersedia' ? (
-                    <div className="text-right shrink-0">
-                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Status Stok</span>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100 animate-pulse">
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                        Kosong (Habis)
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="text-right shrink-0">
-                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 block uppercase tracking-wider mb-1">Status Stok</span>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        Tersedia
-                      </span>
-                    </div>
-                  )}
                 </div>
 
                 {/* Modal Unit Selector */}
@@ -619,12 +585,7 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
                 <button
                   id={`whatsapp-order-${selectedMedicine.id}`}
                   onClick={() => handleWhatsappOrder(selectedMedicine)}
-                  disabled={selectedMedicine.stockStatus !== 'Tersedia'}
-                  className={`w-full sm:flex-1 py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer min-h-[44px] ${
-                    selectedMedicine.stockStatus === 'Tersedia'
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 active:scale-98'
-                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                  }`}
+                  className="w-full sm:flex-1 py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 active:scale-98"
                 >
                   <ShoppingBag size={15} />
                   Pesan & Konsultasi Obat

@@ -20,7 +20,7 @@ export interface Medicine {
   priceKhusus?: number; // HARGA KHUSUS
   priceHkOtc?: number; // HARGA HK OTC
   image?: string; // Product Image base64 data URL
-  stockStatus: 'Tersedia' | 'Kosong';
+  stockStatus?: 'Tersedia' | 'Kosong';
   indication: string;
   dose: string;
   updatedAt: string;

@@ -4,11 +4,16 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { getMedicines, getPromos, getSettings, initializeData } from './utils';
 import { Medicine, Promo, Settings } from './types';
 import CatalogView from './components/CatalogView';
 import PromoView from './components/PromoView';
 import RoomControl from './components/RoomControl';
+import { 
+  subscribeMedicines, 
+  subscribePromos, 
+  subscribeSettings,
+  firebaseInitializeData
+} from './firebaseUtils';
 import { 
   Heart, 
   MapPin, 
@@ -31,14 +36,20 @@ export default function App() {
 
   // Initialize and load data on component mount
   useEffect(() => {
-    initializeData();
-    refreshData();
+    firebaseInitializeData();
+    const unsub1 = subscribeMedicines(setMedicines);
+    const unsub2 = subscribePromos(setPromos);
+    const unsub3 = subscribeSettings(setSettings);
+    
+    return () => {
+      unsub1();
+      unsub2();
+      unsub3();
+    };
   }, []);
 
   const refreshData = () => {
-    setMedicines(getMedicines());
-    setPromos(getPromos());
-    setSettings(getSettings());
+    // For compatibility with RoomControl callbacks, although no longer strictly needed due to onSnapshot
   };
 
   // Dynamic filter out of expired promos and price adjustments for clients

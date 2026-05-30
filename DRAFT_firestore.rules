@@ -1,0 +1,34 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} { 
+      allow read, write: if false; 
+    }
+    
+    function isValidStringLength(str, max) {
+        return str is string && str.size() <= max;
+    }
+    
+    match /medicines/{medicineId} {
+        allow read: if true;
+        allow write: if true;
+    }
+
+    match /promos/{promoId} {
+        allow read: if true;
+        allow write: if true;
+    }
+
+    match /settings/{settingId} {
+        allow read: if true;
+        allow write: if true;
+    }
+
+    match /logs/{logId} {
+        allow read: if true;
+        allow write: if true;
+    }
+  }
+}

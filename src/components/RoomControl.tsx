@@ -5,18 +5,19 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Medicine, Promo, ActionLog, Settings } from '../types';
+import { formatRupiah } from '../utils';
 import { 
-  getMedicines, 
-  saveMedicines, 
-  getPromos, 
-  savePromos, 
-  getSettings, 
-  saveSettings, 
-  getLogs, 
-  saveLogs,
-  addLog, 
-  formatRupiah 
-} from '../utils';
+  saveMedicine, 
+  deleteMedicine, 
+  savePromo, 
+  deletePromo, 
+  saveSettingsObj, 
+  addLogObj, 
+  replaceMedicinesList, 
+  replacePromosList, 
+  firebaseInitializeData, 
+  subscribeLogs 
+} from '../firebaseUtils';
 import { 
   Lock, 
   ShieldAlert, 
@@ -58,6 +59,16 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
   const [pinInput, setPinInput] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSuperUser, setIsSuperUser] = useState(false);
+  const [currentLogs, setCurrentLogs] = useState<ActionLog[]>([]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const unsub = subscribeLogs((logs) => {
+        setCurrentLogs(logs);
+      });
+      return () => unsub();
+    }
+  }, [isAuthenticated]);
   const [showPin, setShowPin] = useState(false);
   const [loginError, setLoginError] = useState('');
 
@@ -78,7 +89,6 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     priceKhusus: 0,
     priceHkOtc: 0,
     image: '',
-    stockStatus: 'Tersedia' as 'Tersedia' | 'Kosong',
     indication: '',
     dose: '',
     isPromo: false,
@@ -111,6 +121,12 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
   const [greetingPromo, setGreetingPromo] = useState(settings.greetingPromo || '');
   const [pharmacyLogo, setPharmacyLogo] = useState(settings.pharmacyLogo || '');
   const [pharmacyAddress, setPharmacyAddress] = useState(settings.pharmacyAddress || '');
+  
+  const [bgType, setBgType] = useState<'color'|'image'|'pattern'>(settings.bgType as any || 'pattern');
+  const [bgColor, setBgColor] = useState(settings.bgColor || '#f8fafc');
+  const [bgPattern, setBgPattern] = useState<'dots'|'grid'|'crosses'|'none'>(settings.bgPattern as any || 'none');
+  const [bgImageUrl, setBgImageUrl] = useState(settings.bgImageUrl || '');
+  
   const [settingsStatus, setSettingsStatus] = useState({ success: false, message: '' });
 
   // Sync settings prop changes
@@ -120,6 +136,10 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     setGreetingPromo(settings.greetingPromo || '');
     setPharmacyLogo(settings.pharmacyLogo || '');
     setPharmacyAddress(settings.pharmacyAddress || '');
+    if (settings.bgType) setBgType(settings.bgType as any);
+    if (settings.bgColor) setBgColor(settings.bgColor);
+    if (settings.bgPattern) setBgPattern(settings.bgPattern as any);
+    if (settings.bgImageUrl) setBgImageUrl(settings.bgImageUrl);
   }, [settings]);
 
   // JSON Import state
@@ -146,13 +166,13 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     if (pinInput === SUPER_USER_PIN) {
       setIsAuthenticated(true);
       setIsSuperUser(true);
-      addLog('Super User Login', 'Bypass PIN berhasil menggunakan Kredensial Super User.');
+      addLogObj('Super User Login', 'Bypass PIN berhasil menggunakan Kredensial Super User.').catch(console.error);
       setPinInput('');
       setLoginError('');
     } else if (pinInput === settings.adminPin) {
       setIsAuthenticated(true);
       setIsSuperUser(false);
-      addLog('Admin Login', 'Dashboard Room Control berhasil diakses menggunakan PIN standar.');
+      addLogObj('Admin Login', 'Dashboard Room Control berhasil diakses menggunakan PIN standar.').catch(console.error);
       setPinInput('');
       setLoginError('');
     } else {
@@ -162,7 +182,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
   };
 
   const handleLogout = () => {
-    addLog(isSuperUser ? 'Super User Logout' : 'Admin Logout', 'Keluar dari Room Control.');
+    addLogObj(isSuperUser ? 'Super User Logout' : 'Admin Logout', 'Keluar dari Room Control.').catch(console.error);
     setIsAuthenticated(false);
     setIsSuperUser(false);
     clearKeypad();
@@ -211,11 +231,10 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
   };
 
   // Medicine Actions
-  const handleSaveMedicine = (e: React.FormEvent) => {
+  const handleSaveMedicine = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!medicineForm.name.trim()) return;
 
-    const medicinesList = getMedicines();
     // Default price to priceMedis (official/core price)
     const officialPrice = Number(medicineForm.priceMedis || medicineForm.price);
     const promoValue = medicineForm.isPromo ? Number(medicineForm.pricePromo) : undefined;
@@ -233,7 +252,6 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
         priceKhusus: Number(medicineForm.priceKhusus) || undefined,
         priceHkOtc: Number(medicineForm.priceHkOtc) || undefined,
         image: medicineForm.image || undefined,
-        stockStatus: medicineForm.stockStatus,
         indication: medicineForm.indication,
         dose: medicineForm.dose,
         isPromo: medicineForm.isPromo,
@@ -243,45 +261,38 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
         multiUnits: medicineForm.multiUnits.length > 0 ? medicineForm.multiUnits : undefined
       };
 
-      saveMedicines([...medicinesList, newMed]);
-      addLog('Tambah Obat', `Menambahkan obat baru dengan multi-harga: ${newMed.name}`);
+      await saveMedicine(newMed);
+      await addLogObj('Tambah Obat', `Menambahkan obat baru dengan multi-harga: ${newMed.name}`);
       setIsAddingMedicine(false);
     } else if (editingMedicine) {
-      const updatedList = medicinesList.map((m) => {
-        if (m.id === editingMedicine.id) {
-          return {
-            ...m,
-            name: medicineForm.name,
-            category: medicineForm.category,
-            activeIngredient: medicineForm.activeIngredient,
-            price: officialPrice,
-            priceMb: Number(medicineForm.priceMb) || undefined,
-            priceMedis: Number(medicineForm.priceMedis) || officialPrice,
-            pricePromo: promoValue,
-            priceKhusus: Number(medicineForm.priceKhusus) || undefined,
-            priceHkOtc: Number(medicineForm.priceHkOtc) || undefined,
-            image: medicineForm.image || undefined,
-            stockStatus: medicineForm.stockStatus,
-            indication: medicineForm.indication,
-            dose: medicineForm.dose,
-            isPromo: medicineForm.isPromo,
-            promoPrice: promoValue,
-            updatedAt: new Date().toISOString(),
-            baseUnit: medicineForm.baseUnit || 'Lembar',
-            multiUnits: medicineForm.multiUnits.length > 0 ? medicineForm.multiUnits : undefined
-          };
-        }
-        return m;
-      });
+      const newMed: Medicine = {
+        ...editingMedicine,
+        name: medicineForm.name,
+        category: medicineForm.category,
+        activeIngredient: medicineForm.activeIngredient,
+        price: officialPrice,
+        priceMb: Number(medicineForm.priceMb) || undefined,
+        priceMedis: Number(medicineForm.priceMedis) || officialPrice,
+        pricePromo: promoValue,
+        priceKhusus: Number(medicineForm.priceKhusus) || undefined,
+        priceHkOtc: Number(medicineForm.priceHkOtc) || undefined,
+        image: medicineForm.image || undefined,
+        indication: medicineForm.indication,
+        dose: medicineForm.dose,
+        isPromo: medicineForm.isPromo,
+        promoPrice: promoValue,
+        updatedAt: new Date().toISOString(),
+        baseUnit: medicineForm.baseUnit || 'Lembar',
+        multiUnits: medicineForm.multiUnits.length > 0 ? medicineForm.multiUnits : undefined
+      };
 
-      saveMedicines(updatedList);
-      addLog('Ubah Obat', `Mengubah multi-harga/rincian obat: ${editingMedicine.name}`);
+      await saveMedicine(newMed);
+      await addLogObj('Ubah Obat', `Mengubah multi-harga/rincian obat: ${editingMedicine.name}`);
       setEditingMedicine(null);
     }
 
     // Reset Form
     resetMedicineForm();
-    onDataChange();
   };
 
   const resetMedicineForm = () => {
@@ -296,7 +307,6 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
       priceKhusus: 0,
       priceHkOtc: 0,
       image: '',
-      stockStatus: 'Tersedia',
       indication: '',
       dose: '',
       isPromo: false,
@@ -320,7 +330,6 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
       priceKhusus: med.priceKhusus || 0,
       priceHkOtc: med.priceHkOtc || 0,
       image: med.image || '',
-      stockStatus: med.stockStatus,
       indication: med.indication,
       dose: med.dose || '',
       isPromo: med.isPromo,
@@ -330,22 +339,17 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     });
   };
 
-  const handleDeleteMedicine = (id: string, name: string) => {
+  const handleDeleteMedicine = async (id: string, name: string) => {
     if (confirm(`Apakah Anda yakin ingin menghapus "${name}"? Tindakan ini tidak dapat dibatalkan.`)) {
-      const rawMedicines = getMedicines();
-      const updated = rawMedicines.filter((m) => m.id !== id);
-      saveMedicines(updated);
-      addLog('Hapus Obat', `Menghapus obat dari sistem: ${name}`);
-      onDataChange();
+      await deleteMedicine(id);
+      await addLogObj('Hapus Obat', `Menghapus obat dari sistem: ${name}`);
     }
   };
 
   // Promo Actions
-  const handleSavePromo = (e: React.FormEvent) => {
+  const handleSavePromo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!promoForm.title.trim()) return;
-
-    const promosList = getPromos();
 
     if (isAddingPromo) {
       const newPromo: Promo = {
@@ -360,51 +364,41 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
         bundledMedicineIds: promoForm.isBundling ? promoForm.bundledMedicineIds : []
       };
 
-      savePromos([...promosList, newPromo]);
+      await savePromo(newPromo);
 
       // Sync linked medicine's promo condition automatically (if not bundle)
       if (!newPromo.isBundling && newPromo.medicineId) {
-        const medList = getMedicines();
-        const updatedMedList = medList.map((m) => {
-          if (m.id === newPromo.medicineId) {
-            return {
-              ...m,
-              isPromo: true,
-              promoPrice: Math.round(m.price * (1 - (newPromo.discountPercent || 0) / 100))
-            };
-          }
-          return m;
-        });
-        saveMedicines(updatedMedList);
+        const med = medicines.find(m => m.id === newPromo.medicineId);
+        if (med) {
+            await saveMedicine({
+                ...med,
+                isPromo: true,
+                promoPrice: Math.round(med.price * (1 - (newPromo.discountPercent || 0) / 100))
+            });
+        }
       }
 
-      addLog('Tambah Promo', `Menambahkan brosur promo baru: ${newPromo.title}`);
+      await addLogObj('Tambah Promo', `Menambahkan brosur promo baru: ${newPromo.title}`);
       setIsAddingPromo(false);
     } else if (editingPromo) {
-      const updatedList = promosList.map((p) => {
-        if (p.id === editingPromo.id) {
-          return {
-            ...p,
-            title: promoForm.title,
-            description: promoForm.description,
-            medicineId: promoForm.medicineId || undefined,
-            discountPercent: promoForm.discountPercent ? Number(promoForm.discountPercent) : undefined,
-            validFrom: promoForm.validFrom || undefined,
-            validUntil: promoForm.validUntil,
-            isBundling: promoForm.isBundling,
-            bundledMedicineIds: promoForm.isBundling ? promoForm.bundledMedicineIds : []
-          };
-        }
-        return p;
-      });
+      const updatedPromo: Promo = {
+        ...editingPromo,
+        title: promoForm.title,
+        description: promoForm.description,
+        medicineId: promoForm.medicineId || undefined,
+        discountPercent: promoForm.discountPercent ? Number(promoForm.discountPercent) : undefined,
+        validFrom: promoForm.validFrom || undefined,
+        validUntil: promoForm.validUntil,
+        isBundling: promoForm.isBundling,
+        bundledMedicineIds: promoForm.isBundling ? promoForm.bundledMedicineIds : []
+      };
 
-      savePromos(updatedList);
-      addLog('Ubah Promo', `Mengubah rincian brosur promo: ${editingPromo.title}`);
+      await savePromo(updatedPromo);
+      await addLogObj('Ubah Promo', `Mengubah rincian brosur promo: ${editingPromo.title}`);
       setEditingPromo(null);
     }
 
     resetPromoForm();
-    onDataChange();
   };
 
   const resetPromoForm = () => {
@@ -439,31 +433,24 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     });
   };
 
-  const handleDeletePromo = (id: string, title: string) => {
+  const handleDeletePromo = async (id: string, title: string) => {
     if (confirm(`Apakah Anda yakin ingin menghapus brosur promo "${title}"?`)) {
-      const rawPromos = getPromos();
-      const targetPromo = rawPromos.find((p) => p.id === id);
-      const updated = rawPromos.filter((p) => p.id !== id);
-      savePromos(updated);
+      const targetPromo = promos.find((p) => p.id === id);
+      await deletePromo(id);
 
       // Re-evaluate linked medicine
       if (targetPromo && targetPromo.medicineId) {
-        const medList = getMedicines();
-        const updatedMedList = medList.map((m) => {
-          if (m.id === targetPromo.medicineId) {
-            return {
-              ...m,
+        const med = medicines.find(m => m.id === targetPromo.medicineId);
+        if (med) {
+          await saveMedicine({
+              ...med,
               isPromo: false,
               promoPrice: undefined
-            };
-          }
-          return m;
-        });
-        saveMedicines(updatedMedList);
+          });
+        }
       }
 
-      addLog('Hapus Promo', `Menghapus brosur promo: ${title}`);
-      onDataChange();
+      await addLogObj('Hapus Promo', `Menghapus brosur promo: ${title}`);
     }
   };
 
@@ -488,8 +475,29 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     setPharmacyLogo('');
   };
 
+  const handleBgImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 800 * 1024) { // limit 800KB
+        alert('File gambar latar belakang terlalu besar! Maksimal ukuran berkas adalah 800KB untuk memastikan kestabilan penyimpanan database.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setBgImageUrl(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveBgImage = () => {
+    setBgImageUrl('');
+  };
+
   // Settings Actions
-  const handleSaveSettings = (e: React.FormEvent) => {
+  const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     setSettingsStatus({ success: false, message: '' });
 
@@ -508,22 +516,25 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
       }
     }
 
-    const currentSettings = getSettings();
     const updatedSettings: Settings = {
-      adminPin: newPin !== '' ? newPin : currentSettings.adminPin,
-      whatsappNumber: whatsappNumber || currentSettings.whatsappNumber,
+      ...settings,
+      adminPin: newPin !== '' ? newPin : settings.adminPin,
+      whatsappNumber: whatsappNumber || settings.whatsappNumber,
       greetingCatalog: greetingCatalog,
       greetingPromo: greetingPromo,
       pharmacyLogo: pharmacyLogo,
-      pharmacyAddress: pharmacyAddress
+      pharmacyAddress: pharmacyAddress,
+      bgType: bgType,
+      bgColor: bgColor,
+      bgPattern: bgPattern,
+      bgImageUrl: bgImageUrl
     };
 
-    saveSettings(updatedSettings);
-    addLog('Ganti Aturan', 'Konfigurasi admin standar dan nomor order WA berhasil diperbarui.');
+    await saveSettingsObj(updatedSettings);
+    await addLogObj('Ganti Aturan', 'Konfigurasi admin standar dan nomor order WA berhasil diperbarui.');
     setSettingsStatus({ success: true, message: 'Pengaturan berhasil disimpan!' });
     setNewPin('');
     setConfirmNewPin('');
-    onDataChange();
   };
 
   // Excel Template Downloader
@@ -538,7 +549,6 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
         'Harga Promo',
         'Harga Khusus',
         'Harga HK OTC',
-        'Stok (Tersedia/Kosong)',
         'Indikasi',
         'Dosis',
         'Apakah Promo (Ya/Tidak)'
@@ -554,7 +564,6 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
           'Harga Promo': 4500,
           'Harga Khusus': 4200,
           'Harga HK OTC': 4000,
-          'Stok (Tersedia/Kosong)': 'Tersedia',
           'Indikasi': 'Meredakan demam dan sakit kepala ringan.',
           'Dosis': 'Dewasa: 1-2 tablet sekali minum, 3-4 kali sehari.',
           'Apakah Promo (Ya/Tidak)': 'Tidak'
@@ -568,7 +577,6 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
           'Harga Promo': 13000,
           'Harga Khusus': 12500,
           'Harga HK OTC': 12000,
-          'Stok (Tersedia/Kosong)': 'Kosong',
           'Indikasi': 'Infeksi bakteri pada pernapasan, uro-genital, kulit, dll.',
           'Dosis': 'Sesuai petunjuk dokter. Umumnya 1 kapsul setiap 8 jam.',
           'Apakah Promo (Ya/Tidak)': 'Tidak'
@@ -580,7 +588,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
       XLSX.utils.book_append_sheet(wb, ws, 'Template Obat');
       
       XLSX.writeFile(wb, 'Template_Impor_Obat_Assyifa.xlsx');
-      addLog('Unduh Template', 'Berhasil mengunduh template Excel impor obat.');
+      addLogObj('Unduh Template', 'Berhasil mengunduh template Excel impor obat.').catch(console.error);
     } catch (err: any) {
       alert('Gagal mengunduh template: ' + err.message);
     }
@@ -601,7 +609,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
         const data = evt.target?.result;
         const workbook = XLSX.read(data, { type: 'binary' });
@@ -614,8 +622,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
           return;
         }
 
-        const currentMeds = getMedicines();
-        const newMedicinesList: Medicine[] = [...currentMeds];
+        const newMedicinesList: Medicine[] = [...medicines];
         let importedCount = 0;
 
         jsonData.forEach((row: any) => {
@@ -629,9 +636,6 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
           const pricePromo = parseCleanNumber(row['Harga Promo'] || row['pricePromo']);
           const priceKhusus = parseCleanNumber(row['Harga Khusus'] || row['priceKhusus']);
           const priceHkOtc = parseCleanNumber(row['Harga HK OTC'] || row['priceHkOtc']);
-          
-          const rawStock = String(row['Stok (Tersedia/Kosong)'] || row['stockStatus'] || 'Tersedia').trim().toLowerCase();
-          const stockStatus: 'Tersedia' | 'Kosong' = (rawStock === 'kosong' || rawStock === 'habis' || rawStock === 'false' || rawStock === '0') ? 'Kosong' : 'Tersedia';
           
           const indication = row['Indikasi'] || row['indication'] || '';
           const dose = row['Dosis'] || row['dose'] || '';
@@ -653,7 +657,6 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
             pricePromo: pricePromo || promoPriceVal,
             priceKhusus: priceKhusus || originalPrice,
             priceHkOtc: priceHkOtc || originalPrice,
-            stockStatus: stockStatus,
             indication: indication,
             dose: dose,
             isPromo: isPromo,
@@ -666,10 +669,9 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
         });
 
         if (importedCount > 0) {
-          saveMedicines(newMedicinesList);
-          addLog('Impor Excel', `Berhasil mengimpor ${importedCount} data obat baru dari berkas Excel.`);
+          await replaceMedicinesList(newMedicinesList);
+          await addLogObj('Impor Excel', `Berhasil mengimpor ${importedCount} data obat baru dari berkas Excel.`);
           alert(`Berhasil mengimpor ${importedCount} data obat dari Excel!`);
-          onDataChange();
         } else {
           alert('Format baris Excel tidak sesuai. Harap unduh template untuk melihat tajuk kolom yang valid.');
         }
@@ -689,23 +691,22 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
         const text = evt.target?.result as string;
         const parsed = JSON.parse(text);
         if (parsed.medicines && parsed.promos && parsed.settings) {
-          saveMedicines(parsed.medicines);
-          savePromos(parsed.promos);
-          saveSettings(parsed.settings);
-          if (parsed.logs) saveLogs(parsed.logs);
+          await replaceMedicinesList(parsed.medicines);
+          await replacePromosList(parsed.promos);
+          await saveSettingsObj(parsed.settings);
+          // if (parsed.logs) saveLogs(parsed.logs); // Ignore logs during reset to keep history intact
 
           setSettingsStatus({
             success: true,
             message: 'Aplikasi Berhasil Berbagi Hubungan! Basis data telah dipulihkan sepenuhnya dari cadangan JSON.'
           });
-          addLog('Pulihkan JSON', 'Seluruh database di-restore sukses menggunakan berkas JSON.');
+          await addLogObj('Pulihkan JSON', 'Seluruh database di-restore sukses menggunakan berkas JSON.');
           alert('Pemulihan cadangan data XML/JSON berhasil disinkronisasi!');
-          onDataChange();
         } else {
           setSettingsStatus({
             success: false,
@@ -728,10 +729,10 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
   // Super User Operations
   const handleExportData = () => {
     const data = {
-      medicines: getMedicines(),
-      promos: getPromos(),
-      settings: getSettings(),
-      logs: getLogs()
+      medicines: medicines,
+      promos: promos,
+      settings: settings,
+      logs: currentLogs
     };
     const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data, null, 2))}`;
     const downloadAnchor = document.createElement('a');
@@ -740,25 +741,23 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-    addLog('Super Ekspor', 'Seluruh data lokal berhasil diekspor menjadi berkas berkunci.');
+    addLogObj('Super Ekspor', 'Seluruh data lokal berhasil diekspor menjadi berkas berkunci.').catch(console.error);
   };
 
-  const handleImportJson = (e: React.FormEvent) => {
+  const handleImportJson = async (e: React.FormEvent) => {
     e.preventDefault();
     setImportStatus({ success: false, message: '' });
 
     try {
       const parsed = JSON.parse(importJson);
       if (parsed.medicines && parsed.promos && parsed.settings) {
-        saveMedicines(parsed.medicines);
-        savePromos(parsed.promos);
-        saveSettings(parsed.settings);
-        if (parsed.logs) saveLogs(parsed.logs);
+        await replaceMedicinesList(parsed.medicines);
+        await replacePromosList(parsed.promos);
+        await saveSettingsObj(parsed.settings);
 
         setImportStatus({ success: true, message: 'Impor data basis berhasil! Silakan refresh halaman.' });
-        addLog('Super Impor', 'Berhasil merekam impor basis data mentah secara massal.');
+        await addLogObj('Super Impor', 'Berhasil merekam impor basis data mentah secara massal.');
         setImportJson('');
-        onDataChange();
       } else {
         setImportStatus({ success: false, message: 'Skema JSON tidak valid. Pastikan berisi medicines, promos, dan settings.' });
       }
@@ -767,22 +766,15 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     }
   };
 
-  const handleSistemReset = () => {
+  const handleSistemReset = async () => {
     if (confirm('PERINGATAN! Anda akan mengembalikan semua data ke pengaturan awal pabrik (12 obat utama Assyifa Farma). Tindakan ini akan menghapus semua obat/promo baru. Lanjutkan?')) {
-      localStorage.removeItem('assyifa_medicines');
-      localStorage.removeItem('assyifa_promos');
-      localStorage.removeItem('assyifa_settings');
-      localStorage.removeItem('assyifa_logs');
-      addLog('Super Reset', 'Sistem dibersihkan penuh kembali ke dataset awal pabrik.');
+      await replaceMedicinesList([]);
+      await replacePromosList([]);
+      await firebaseInitializeData();
+      await addLogObj('Super Reset', 'Sistem dibersihkan penuh kembali ke dataset awal pabrik.');
       alert('Sistem berhasil di-reset!');
-      window.location.reload();
     }
   };
-
-  // Get current logs list
-  const currentLogs = useMemo(() => {
-    return getLogs();
-  }, [isAuthenticated, activeTab]);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -1180,35 +1172,8 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                         </div>
                       </div>
 
-                      {/* Stock status & Promo Checkbox */}
+                      {/* Promo Checkbox */}
                       <div className="space-y-2 select-none md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                        {/* Status Stok */}
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-bold text-slate-500 uppercase block">Status Stok Saat Ini:</label>
-                          <div className="flex gap-4 pt-1">
-                            <label className="text-xs text-slate-655 text-slate-600 inline-flex items-center gap-1.5 cursor-pointer font-medium">
-                              <input
-                                type="radio"
-                                name="st-re"
-                                checked={medicineForm.stockStatus === 'Tersedia'}
-                                onChange={() => setMedicineForm({...medicineForm, stockStatus: 'Tersedia'})}
-                                className="text-blue-600 focus:ring-0 cursor-pointer"
-                              />
-                              Tersedia (In Stock)
-                            </label>
-                            <label className="text-xs text-slate-600 inline-flex items-center gap-1.5 cursor-pointer font-medium">
-                              <input
-                                type="radio"
-                                name="st-re"
-                                checked={medicineForm.stockStatus === 'Kosong'}
-                                onChange={() => setMedicineForm({...medicineForm, stockStatus: 'Kosong'})}
-                                className="text-blue-600 focus:ring-0 cursor-pointer"
-                              />
-                              Kosong (Habis)
-                            </label>
-                          </div>
-                        </div>
-
                         {/* Promo Enable */}
                         <div className="space-y-1">
                           <label className="text-[11px] font-bold text-slate-500 uppercase block">Status Promosi Produk:</label>
@@ -1419,7 +1384,6 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                       <tr>
                         <th className="py-3 px-4">Nama Obat</th>
                         <th className="py-3 px-4">Kategori</th>
-                        <th className="py-3 px-4 text-center">Status Stok</th>
                         <th className="py-3 px-4 select-none">Multi-Harga Produk</th>
                         <th className="py-3 px-4 text-center">Aksi</th>
                       </tr>
@@ -1441,17 +1405,6 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                           </td>
                           <td className="py-2.5 px-4 font-semibold text-[10px]">
                             {med.category}
-                          </td>
-                          <td className="py-2.5 px-4 text-center">
-                            {med.stockStatus === 'Tersedia' ? (
-                              <span className="inline-flex items-center justify-center text-emerald-600" title="Stok Aman">
-                                <CheckCircle size={15} />
-                              </span>
-                            ) : (
-                              <span className="text-[10px] bg-rose-50 text-rose-500 font-bold px-2 py-0.5 rounded">
-                                Kosong
-                              </span>
-                            )}
                           </td>
                           <td className="py-2.5 px-4">
                             <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] max-w-xs font-mono">
@@ -1527,19 +1480,6 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
 
                       {/* Stock Status and Prices */}
                       <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status Stok:</span>
-                          {med.stockStatus === 'Tersedia' ? (
-                            <span className="text-emerald-700 font-extrabold px-2 py-0.5" title="Stok Aman">
-                              <CheckCircle size={14} />
-                            </span>
-                          ) : (
-                            <span className="text-[10px] bg-rose-50 text-rose-600 px-2 py-0.5 rounded font-extrabold">
-                              Kosong (Habis)
-                            </span>
-                          )}
-                        </div>
-
                         <div className="bg-slate-50/50 p-2 rounded-lg border border-slate-100 space-y-1.5">
                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Rincian Multi-Harga:</span>
                           <div className="grid grid-cols-2 gap-2 text-[10px]">
@@ -2115,6 +2055,128 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                           className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-slate-200/60 my-4"></div>
+
+                  {/* Kustomisasi Latar Belakang */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-blue-800 uppercase tracking-widest">Kustomisasi Panel Utama (Latar)</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Jenis Latar:</label>
+                        <select
+                          value={bgType}
+                          onChange={(e) => setBgType(e.target.value as any)}
+                          className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500"
+                        >
+                          <option value="pattern">Pola Warna / Pattern</option>
+                          <option value="color">Warna Solid</option>
+                          <option value="image">Gambar / Foto</option>
+                        </select>
+                      </div>
+
+                      {bgType !== 'image' && (
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Warna Latar Dasar (Hex / Nama):</label>
+                          <div className="flex items-center gap-2">
+                             <input
+                               type="color"
+                               value={bgColor}
+                               onChange={(e) => setBgColor(e.target.value)}
+                               className="h-8 w-10 p-0 border-0 rounded cursor-pointer"
+                             />
+                             <input
+                               type="text"
+                               placeholder="#f8fafc"
+                               value={bgColor}
+                               onChange={(e) => setBgColor(e.target.value)}
+                               className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500"
+                             />
+                          </div>
+                        </div>
+                      )}
+
+                      {bgType === 'pattern' && (
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Pilih Pola Hiasan:</label>
+                          <select
+                            value={bgPattern}
+                            onChange={(e) => setBgPattern(e.target.value as any)}
+                            className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500"
+                          >
+                            <option value="none">Kosong (Hanya Warna)</option>
+                            <option value="dots">Titik (Dots)</option>
+                            <option value="grid">Garis Kotak (Grid)</option>
+                            <option value="crosses">Tanda Silang (Crosses)</option>
+                          </select>
+                        </div>
+                      )}
+
+                      {bgType === 'image' && (
+                        <div className="space-y-3 col-span-1 sm:col-span-2">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Tautan URL Gambar:</label>
+                              <input
+                                type="text"
+                                placeholder="https://contoh.com/gambar.jpg"
+                                value={bgImageUrl.startsWith('data:') ? '' : bgImageUrl}
+                                onChange={(e) => setBgImageUrl(e.target.value)}
+                                className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500"
+                              />
+                              <p className="text-[9px] text-slate-400 mt-1">Gunakan alamat URL gambar publik, atau unggah langsung menggunakan tombol di sebelah kanan.</p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Atau Unggah Langsung:</label>
+                              
+                              <div className="flex gap-3 items-center">
+                                {/* Preview */}
+                                <div className="w-16 h-12 rounded bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
+                                  {bgImageUrl ? (
+                                    <img src={bgImageUrl} alt="Background Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                  ) : (
+                                    <span className="text-[9px] text-slate-400">Kosong</span>
+                                  )}
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                  <div className="relative border border-dashed border-slate-200 hover:border-blue-400 rounded-lg p-2 text-center cursor-pointer transition-all bg-slate-50 hover:bg-blue-50/20 group">
+                                    <input
+                                      id="bg-file-picker"
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={handleBgImageUpload}
+                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    />
+                                    <div className="flex items-center justify-center gap-1">
+                                      <Upload size={12} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
+                                      <span className="text-[9px] font-bold text-slate-500 group-hover:text-blue-600 transition-colors">
+                                        Pilih Berkas Latar Belakang
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex justify-between items-center text-[8px] text-slate-400">
+                                    <span>Format gambar bebas. Maks 800KB.</span>
+                                    {bgImageUrl && (
+                                      <button
+                                        type="button"
+                                        onClick={handleRemoveBgImage}
+                                        className="text-rose-600 hover:underline font-bold cursor-pointer"
+                                      >
+                                        Hapus gambar
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                     </div>
                   </div>
 

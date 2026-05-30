@@ -1,0 +1,114 @@
+{
+  "entities": {
+    "MultiUnit": {
+      "title": "MultiUnit",
+      "description": "Custom unit for a medicine",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "multiplier": { "type": "number" }
+      },
+      "required": ["name", "multiplier"]
+    },
+    "Medicine": {
+      "title": "Medicine",
+      "description": "Medicine item stored in the application",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "activeIngredient": { "type": "string" },
+        "price": { "type": "number" },
+        "priceMb": { "type": "number" },
+        "priceMedis": { "type": "number" },
+        "pricePromo": { "type": "number" },
+        "priceKhusus": { "type": "number" },
+        "priceHkOtc": { "type": "number" },
+        "image": { "type": "string" },
+        "stockStatus": { "type": "string", "enum": ["Tersedia", "Kosong"] },
+        "indication": { "type": "string" },
+        "dose": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "promoPrice": { "type": "number" },
+        "isPromo": { "type": "boolean" },
+        "baseUnit": { "type": "string" },
+        "multiUnits": { 
+          "type": "array",
+          "items": {
+            "$ref": "MultiUnit"
+          }
+        }
+      },
+      "required": ["id", "name", "category", "activeIngredient", "price", "stockStatus", "indication", "dose", "updatedAt", "isPromo"]
+    },
+    "Promo": {
+      "title": "Promo",
+      "description": "A promo or bundle",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "medicineId": { "type": "string" },
+        "discountPercent": { "type": "number" },
+        "validFrom": { "type": "string" },
+        "validUntil": { "type": "string" },
+        "isBundling": { "type": "boolean" },
+        "bundledMedicineIds": {
+            "type": "array",
+            "items": { "type": "string" }
+        }
+      },
+      "required": ["id", "title", "description", "validUntil"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Control settings",
+      "type": "object",
+      "properties": {
+        "adminPin": { "type": "string" },
+        "whatsappNumber": { "type": "string" },
+        "greetingCatalog": { "type": "string" },
+        "greetingPromo": { "type": "string" },
+        "pharmacyLogo": { "type": "string" },
+        "pharmacyAddress": { "type": "string" },
+        "bgType": { "type": "string" },
+        "bgColor": { "type": "string" },
+        "bgPattern": { "type": "string" },
+        "bgImageUrl": { "type": "string" }
+      },
+      "required": ["adminPin", "whatsappNumber"]
+    },
+    "ActionLog": {
+      "title": "ActionLog",
+      "description": "System action log",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "action": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "details": { "type": "string" }
+      },
+      "required": ["id", "action", "timestamp", "details"]
+    }
+  },
+  "firestore": {
+    "/medicines/{medicineId}": {
+      "schema": "Medicine",
+      "description": "Medicines in the application"
+    },
+    "/promos/{promoId}": {
+      "schema": "Promo",
+      "description": "Promos in the application"
+    },
+    "/settings/{settingId}": {
+      "schema": "Settings",
+      "description": "Application settings (e.g. singleton document)"
+    },
+    "/logs/{logId}": {
+      "schema": "ActionLog",
+      "description": "Audit trail logs"
+    }
+  }
+}
