@@ -123,6 +123,38 @@ export async function replacePromosList(promos: Promo[]) {
     }
 }
 
+export async function resetAllDataToDefault() {
+  // 1. Reset medicines
+  await replaceMedicinesList(INITIAL_MEDICINES);
+
+  // 2. Reset promos
+  await replacePromosList(INITIAL_PROMOS);
+
+  // 3. Reset settings to default
+  const defaultSettings: Settings = {
+    adminPin: '12345',
+    whatsappNumber: '6281234567890',
+    greetingCatalog: 'Selamat datang di Apotek Assyifa Farma Cideres. Kami menyediakan katalog obat-obatan lengkap dan harga resmi terpercaya, siap melayani kesehatan Anda dengan sepenuh hati.',
+    greetingPromo: 'Dapatkan promo produk pilihan dan paket bundling hemat khusus pekan ini di Apotek Assyifa Farma Cideres. Silakan berkonsultasi atau memesan langsung melalui nomor WhatsApp resmi kami.',
+    pharmacyAddress: 'Jl. Raya Cideres-Kadipaten No. 45, Cideres, Majalengka',
+    bgType: 'pattern',
+    bgColor: '',
+    bgPattern: '',
+    bgImageUrl: '',
+    pharmacyLogo: ''
+  };
+  await saveSettingsObj(defaultSettings);
+
+  // 4. Delete logs
+  const logsSnap = await getDocs(collection(db, 'logs'));
+  const batch = writeBatch(db);
+  logsSnap.forEach(docSnap => batch.delete(docSnap.ref));
+  await batch.commit();
+
+  // 5. Create initial log
+  await addLogObj('Reset Data', 'Mengembalikan seluruh data medicine, promo, pengaturan, dan riwayat log ke kondisi bawaan.');
+}
+
 export async function firebaseInitializeData() {
     // initialize if empty
     const meds = await getDocs(collection(db, 'medicines'));

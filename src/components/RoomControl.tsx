@@ -16,7 +16,8 @@ import {
   replaceMedicinesList, 
   replacePromosList, 
   firebaseInitializeData, 
-  subscribeLogs 
+  subscribeLogs,
+  resetAllDataToDefault
 } from '../firebaseUtils';
 import { 
   Lock, 
@@ -128,6 +129,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
   const [bgImageUrl, setBgImageUrl] = useState(settings.bgImageUrl || '');
   
   const [settingsStatus, setSettingsStatus] = useState({ success: false, message: '' });
+  const [isResetting, setIsResetting] = useState(false);
 
   // Sync settings prop changes
   useEffect(() => {
@@ -767,12 +769,32 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
   };
 
   const handleSistemReset = async () => {
-    if (confirm('PERINGATAN! Anda akan mengembalikan semua data ke pengaturan awal pabrik (12 obat utama Assyifa Farma). Tindakan ini akan menghapus semua obat/promo baru. Lanjutkan?')) {
-      await replaceMedicinesList([]);
-      await replacePromosList([]);
-      await firebaseInitializeData();
-      await addLogObj('Super Reset', 'Sistem dibersihkan penuh kembali ke dataset awal pabrik.');
-      alert('Sistem berhasil di-reset!');
+    if (confirm('PERINGATAN! Anda akan mengembalikan semua data ke pengaturan awal pabrik. Tindakan ini akan menghapus semua obat/promo baru, kustomisasi tampilan, logo, serta seluruh berkas riwayat log. Lanjutkan?')) {
+      try {
+        setIsResetting(true);
+        await resetAllDataToDefault();
+        alert('Sistem berhasil di-reset sepenuhnya!');
+      } catch (err) {
+        console.error(err);
+        alert('Gagal melakukan reset sistem. Silakan coba lagi.');
+      } finally {
+        setIsResetting(false);
+      }
+    }
+  };
+
+  const handleFullReset = async () => {
+    if (confirm('PERINGATAN KERAS! Anda akan menghapus seluruh data kustomisasi, katalog obat, program promosi, logo, gaya warna latar, serta log aktivitas sistem untuk mengembalikannya ke pengaturan awal bawaan pabrik.\n\nTindakan ini bersifat permanen dan tidak dapat dibatalkan. Lanjutkan?')) {
+      try {
+        setIsResetting(true);
+        await resetAllDataToDefault();
+        alert('Seluruh data berhasil disetel ulang ke kondisi awal bawaan pabrik!');
+      } catch (err) {
+        console.error(err);
+        alert('Gagal mereset data. Silakan coba lagi.');
+      } finally {
+        setIsResetting(false);
+      }
     }
   };
 
@@ -2272,6 +2294,40 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Reset Data Section */}
+                <div className="bg-rose-50/40 p-5 rounded-2xl border border-rose-200/50 space-y-4 mt-6">
+                  <div>
+                    <h4 className="text-xs font-bold text-rose-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <RotateCcw size={14} className="text-rose-600" /> Reset Semua Data Sistem
+                    </h4>
+                    <p className="text-[11px] text-rose-600/85 leading-relaxed">
+                      PERINGATAN: Tindakan ini akan mengembalikan seluruh database (katalog obat, promosi, pengaturan apotek, berkas logo, warna/gambar latar belakang, dan riwayat audit log) kembali ke pengaturan awal bawaan pabrik. Semua perubahan yang pernah Anda buat akan hilang secara permanen.
+                    </p>
+                  </div>
+                  
+                  <div className="flex justify-start">
+                    <button
+                      type="button"
+                      id="settings-reset-data-btn"
+                      onClick={handleFullReset}
+                      disabled={isResetting}
+                      className="px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white font-bold text-[11px] rounded-lg border border-rose-700 flex items-center gap-1.5 cursor-pointer transition-all active:scale-98 shadow-sm"
+                    >
+                      {isResetting ? (
+                        <>
+                          <RotateCcw size={12} className="animate-spin" />
+                          Sedang Mereset Data...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 size={12} />
+                          Reset Kembali ke Pengaturan Bawaan
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>
