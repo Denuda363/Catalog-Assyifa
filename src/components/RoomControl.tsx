@@ -1208,14 +1208,14 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
           </div>
 
           {/* TAB Navigation Bar */}
-          <div className="bg-slate-50 border-b border-slate-100 flex overflow-x-auto scrollbar-none p-1">
+          <div className="bg-slate-50 border-b border-slate-100 flex overflow-x-auto scrollbar-none p-1.5 gap-1">
             <button
               id="admin-tab-medicines"
               onClick={() => { setActiveTab('medicines'); resetMedicineForm(); }}
-              className={`px-4 py-3 font-semibold text-xs transition-all border-b-2 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              className={`px-4 py-3 font-semibold text-xs transition-all border-b-2 whitespace-nowrap cursor-pointer flex items-center gap-1.5 shrink-0 ${
                 activeTab === 'medicines' 
-                  ? 'border-blue-600 text-blue-700 font-bold bg-white rounded-t-lg' 
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'border-blue-600 text-blue-700 font-bold bg-white rounded-t-lg shadow-sm' 
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-t-lg'
               }`}
             >
               <Database size={14} /> Kelola Obat
@@ -1223,10 +1223,10 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
             <button
               id="admin-tab-promos"
               onClick={() => { setActiveTab('promos'); resetPromoForm(); }}
-              className={`px-4 py-3 font-semibold text-xs transition-all border-b-2 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              className={`px-4 py-3 font-semibold text-xs transition-all border-b-2 whitespace-nowrap cursor-pointer flex items-center gap-1.5 shrink-0 ${
                 activeTab === 'promos' 
-                  ? 'border-blue-600 text-blue-700 font-bold bg-white rounded-t-lg' 
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'border-blue-600 text-blue-700 font-bold bg-white rounded-t-lg shadow-sm' 
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-t-lg'
               }`}
             >
               <Hash size={14} /> Kelola Promo
@@ -1234,10 +1234,10 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
             <button
               id="admin-tab-settings"
               onClick={() => setActiveTab('settings')}
-              className={`px-4 py-3 font-semibold text-xs transition-all border-b-2 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+              className={`px-4 py-3 font-semibold text-xs transition-all border-b-2 whitespace-nowrap cursor-pointer flex items-center gap-1.5 shrink-0 ${
                 activeTab === 'settings' 
-                  ? 'border-blue-600 text-blue-700 font-bold bg-white rounded-t-lg' 
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'border-blue-600 text-blue-700 font-bold bg-white rounded-t-lg shadow-sm' 
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-t-lg'
               }`}
             >
               <Settings2 size={14} /> Aturan & PIN
@@ -1247,16 +1247,22 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                 <button
                   id="admin-tab-logs"
                   onClick={() => setActiveTab('logs')}
-                  className="px-4 py-3 font-semibold text-xs transition-all border-b-2 whitespace-nowrap cursor-pointer text-slate-500 hover:text-slate-800 flex items-center gap-1.5"
-                  style={activeTab === 'logs' ? { borderColor: '#2563eb', color: '#2563eb', fontWeight: 'bold', backgroundColor: '#fff', borderTopLeftRadius: '8px', borderTopRightRadius: '8px' } : {}}
+                  className={`px-4 py-3 font-semibold text-xs transition-all border-b-2 whitespace-nowrap cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                    activeTab === 'logs'
+                      ? 'border-blue-600 text-blue-700 font-bold bg-white rounded-t-lg shadow-sm'
+                      : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-t-lg'
+                  }`}
                 >
                   <FileText size={14} /> Audit Log
                 </button>
                 <button
                   id="admin-tab-super"
                   onClick={() => setActiveTab('super')}
-                  className="px-4 py-3 font-semibold text-xs transition-all border-b-2 whitespace-nowrap cursor-pointer text-slate-500 hover:text-slate-800 flex items-center gap-1.5"
-                  style={activeTab === 'super' ? { borderColor: '#2563eb', color: '#2563eb', fontWeight: 'bold', backgroundColor: '#fff', borderTopLeftRadius: '8px', borderTopRightRadius: '8px' } : {}}
+                  className={`px-4 py-3 font-semibold text-xs transition-all border-b-2 whitespace-nowrap cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                    activeTab === 'super'
+                      ? 'border-purple-600 text-purple-700 font-bold bg-white rounded-t-lg shadow-sm'
+                      : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-t-lg'
+                  }`}
                 >
                   <ShieldAlert size={14} /> Super System
                 </button>
@@ -1264,7 +1270,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
             )}
           </div>
 
-          <div className="p-6 md:p-8">
+          <div className="p-4 sm:p-6 md:p-8">
             {/* MANAGE MEDICINES VIEW */}
             {activeTab === 'medicines' && (
               <div className="space-y-6">
@@ -1794,19 +1800,19 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                         <div className="bg-slate-50/50 p-2 rounded-lg border border-slate-100 space-y-1.5">
                           <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Rincian Multi-Harga:</span>
                           <div className="grid grid-cols-2 gap-2 text-[10px]">
-                            <div className="flex items-center justify-between bg-white px-2 py-1 rounded border border-slate-200/80 text-slate-750 text-slate-705">
+                            <div className="flex items-center justify-between bg-white px-2 py-1 rounded border border-slate-200/80 text-slate-700">
                               <span className="font-extrabold text-[8px] text-slate-400 uppercase">MEDIS:</span>
                               <span className="font-bold">{formatRupiah(med.priceMedis || med.price)}</span>
                             </div>
-                            <div className="flex items-center justify-between bg-white px-2 py-1 rounded border border-slate-200/80 text-slate-750 text-slate-705">
+                            <div className="flex items-center justify-between bg-white px-2 py-1 rounded border border-slate-200/80 text-slate-700">
                               <span className="font-extrabold text-[8px] text-slate-400 uppercase">MB:</span>
                               <span className="font-bold">{med.priceMb ? formatRupiah(med.priceMb) : '-'}</span>
                             </div>
-                            <div className="flex items-center justify-between bg-white px-2 py-1 rounded border border-slate-200/80 text-slate-750 text-slate-705">
+                            <div className="flex items-center justify-between bg-white px-2 py-1 rounded border border-slate-200/80 text-slate-700">
                               <span className="font-extrabold text-[8px] text-slate-400 uppercase">KHUSUS:</span>
                               <span className="font-bold">{med.priceKhusus ? formatRupiah(med.priceKhusus) : '-'}</span>
                             </div>
-                            <div className="flex items-center justify-between bg-white px-2 py-1 rounded border border-slate-200/80 text-slate-750 text-slate-705">
+                            <div className="flex items-center justify-between bg-white px-2 py-1 rounded border border-slate-200/80 text-slate-700">
                               <span className="font-extrabold text-[8px] text-slate-400 uppercase">HK OTC:</span>
                               <span className="font-bold">{med.priceHkOtc ? formatRupiah(med.priceHkOtc) : '-'}</span>
                             </div>
