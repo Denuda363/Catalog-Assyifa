@@ -183,6 +183,12 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
   const [selectedCategory, setSelectedCategory] = useState('Semua');
   const [sortOption, setSortOption] = useState('name-asc');
   const [selectedModalUnit, setSelectedModalUnit] = useState<string>('');
+  const [visibleCount, setVisibleCount] = useState(24);
+
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(24);
+  }, [searchTerm, selectedCategory, sortOption]);
 
   useEffect(() => {
     if (selectedMedicine) {
@@ -412,17 +418,30 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
 
       {/* Catalog Grid */}
       {filteredMedicines.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
-          {filteredMedicines.map((med, idx) => (
-            <MedicineCard
-              key={med.id}
-              med={med}
-              idx={idx}
-              getClassificationStyles={getClassificationStyles}
-              setSelectedMedicine={setSelectedMedicine}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
+            {filteredMedicines.slice(0, visibleCount).map((med, idx) => (
+              <MedicineCard
+                key={med.id}
+                med={med}
+                idx={idx}
+                getClassificationStyles={getClassificationStyles}
+                setSelectedMedicine={setSelectedMedicine}
+              />
+            ))}
+          </div>
+          
+          {visibleCount < filteredMedicines.length && (
+            <div className="mt-8 text-center">
+              <button 
+                onClick={() => setVisibleCount(prev => prev + 24)}
+                className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-6 py-2.5 rounded-full font-bold text-sm border border-indigo-100 transition-colors cursor-pointer"
+              >
+                Muat Lebih Banyak ({filteredMedicines.length - visibleCount} tersisa)
+              </button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
           <p className="text-slate-400 text-sm font-medium animate-pulse">Tidak ada obat yang cocok dengan kueri filter Anda.</p>

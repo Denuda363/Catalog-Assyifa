@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Medicine, Promo, Settings } from '../types';
 import { formatRupiah } from '../utils';
 import { Tag, Calendar, Gift, ChevronRight, Share2, MessageCircle, Activity } from 'lucide-react';
@@ -17,6 +17,7 @@ interface PromoViewProps {
 }
 
 export default function PromoView({ promos, medicines, settings, onSelectMedicine }: PromoViewProps) {
+  const [visibleCount, setVisibleCount] = useState(12);
   
   // Find linked medicine
   const getLinkedMedicine = (medicineId?: string) => {
@@ -98,20 +99,21 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
       )}
 
       {promos.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          {promos.map((p, idx) => {
-            const linkedMed = getLinkedMedicine(p.medicineId);
-            const status = getPromoStatus(p);
-            const inactive = status !== 'ACTIVE';
-            const expired = status === 'EXPIRED';
-            const isIncoming = status === 'BELUM_MULAI';
-            const bundledMedicinesList = getBundledMedicines(p.bundledMedicineIds);
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {promos.slice(0, visibleCount).map((p, idx) => {
+              const linkedMed = getLinkedMedicine(p.medicineId);
+              const status = getPromoStatus(p);
+              const inactive = status !== 'ACTIVE';
+              const expired = status === 'EXPIRED';
+              const isIncoming = status === 'BELUM_MULAI';
+              const bundledMedicinesList = getBundledMedicines(p.bundledMedicineIds);
 
-            return (
-              <motion.div
-                key={p.id}
-                id={`promo-card-${p.id}`}
-                initial={{ opacity: 0, y: 15 }}
+              return (
+                <motion.div
+                  key={p.id}
+                  id={`promo-card-${p.id}`}
+                  initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: idx * 0.05 }}
                 className={`bg-white rounded-xl border ${
@@ -267,7 +269,19 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
               </motion.div>
             );
           })}
-        </div>
+          </div>
+
+          {visibleCount < promos.length && (
+            <div className="mt-8 text-center">
+              <button 
+                onClick={() => setVisibleCount(prev => prev + 12)}
+                className="bg-rose-50 text-rose-700 hover:bg-rose-100 px-6 py-2.5 rounded-full font-bold text-sm border border-rose-100 transition-colors cursor-pointer"
+              >
+                Muat Lebih Banyak ({promos.length - visibleCount} tersisa)
+              </button>
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
           <Gift size={32} className="text-slate-300 mx-auto mb-2" />

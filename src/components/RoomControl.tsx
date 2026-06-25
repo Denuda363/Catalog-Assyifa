@@ -93,6 +93,12 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
   // Control tabs
   const [activeTab, setActiveTab] = useState<'medicines' | 'promos' | 'settings' | 'logs' | 'super'>('medicines');
 
+  // Pagination states
+  const [medicinePage, setMedicinePage] = useState(1);
+  const [promoPage, setPromoPage] = useState(1);
+  const [logPage, setLogPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
   // Form states - Medicines
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
   const [isAddingMedicine, setIsAddingMedicine] = useState(false);
@@ -1003,6 +1009,34 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     }
   };
 
+  const renderPagination = (currentPage: number, totalItems: number, setPage: (p: number) => void) => {
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    if (totalPages <= 1) return null;
+    return (
+      <div className="flex justify-between items-center mt-4 bg-white p-3 rounded-xl border border-slate-200">
+        <span className="text-xs font-bold text-slate-500">
+          Halaman {currentPage} dari {totalPages} ({totalItems} total)
+        </span>
+        <div className="flex gap-2">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setPage(currentPage - 1)}
+            className="px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-xs font-bold disabled:opacity-50 transition-colors cursor-pointer"
+          >
+            Sebelumnya
+          </button>
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => setPage(currentPage + 1)}
+            className="px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-xs font-bold disabled:opacity-50 transition-colors cursor-pointer"
+          >
+            Selanjutnya
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
       {!isAuthenticated ? (
@@ -1622,7 +1656,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {medicines.map((med) => (
+                      {medicines.slice((medicinePage - 1) * ITEMS_PER_PAGE, medicinePage * ITEMS_PER_PAGE).map((med) => (
                         <tr key={med.id} className="hover:bg-slate-50/70 transition-colors">
                           <td className="py-2.5 px-4">
                             <p className="font-bold text-slate-800 text-xs">{med.name}</p>
@@ -1691,7 +1725,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
 
                 {/* Mobile Version Cards */}
                 <div className="block md:hidden space-y-3.5 max-h-[550px] overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-slate-200">
-                  {medicines.map((med) => (
+                  {medicines.slice((medicinePage - 1) * ITEMS_PER_PAGE, medicinePage * ITEMS_PER_PAGE).map((med) => (
                     <div key={med.id} className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-3xs space-y-3">
                       <div className="flex justify-between items-start gap-2">
                         <div className="space-y-0.5">
@@ -1762,6 +1796,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                     </div>
                   ))}
                 </div>
+                {renderPagination(medicinePage, medicines.length, setMedicinePage)}
               </div>
             )}
 
@@ -2057,7 +2092,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {promos.map((p) => (
+                      {promos.slice((promoPage - 1) * ITEMS_PER_PAGE, promoPage * ITEMS_PER_PAGE).map((p) => (
                         <tr key={p.id} className="hover:bg-slate-50/70 transition-colors">
                           <td className="py-3 px-4 font-bold text-slate-800">
                             {p.title}
@@ -2104,7 +2139,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
 
                 {/* Mobile view cards */}
                 <div className="block md:hidden space-y-3.5 max-h-[500px] overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-slate-200">
-                  {promos.map((p) => (
+                  {promos.slice((promoPage - 1) * ITEMS_PER_PAGE, promoPage * ITEMS_PER_PAGE).map((p) => (
                     <div key={p.id} className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-3xs space-y-2.5">
                       <div className="flex justify-between items-start gap-1.5 flex-wrap">
                         <h4 className="font-extrabold text-slate-800 text-xs sm:text-sm uppercase tracking-tight">{p.title}</h4>
@@ -2146,6 +2181,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                     </div>
                   ))}
                 </div>
+                {renderPagination(promoPage, promos.length, setPromoPage)}
               </div>
             )}
 
@@ -2555,7 +2591,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                 </div>
 
                 <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 max-h-96 overflow-y-auto space-y-2">
-                  {currentLogs.map((log) => (
+                  {currentLogs.slice((logPage - 1) * ITEMS_PER_PAGE, logPage * ITEMS_PER_PAGE).map((log) => (
                     <div key={log.id} className="p-3 bg-white rounded-lg border border-slate-200/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
                         <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase mr-2 tracking-wide">
@@ -2569,6 +2605,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                     </div>
                   ))}
                 </div>
+                {renderPagination(logPage, currentLogs.length, setLogPage)}
               </div>
             )}
 
