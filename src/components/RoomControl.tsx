@@ -1013,11 +1013,11 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
     if (totalPages <= 1) return null;
     return (
-      <div className="flex justify-between items-center mt-4 bg-white p-3 rounded-xl border border-slate-200">
-        <span className="text-xs font-bold text-slate-500">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-4 bg-white p-3 sm:px-4 sm:py-3 rounded-xl border border-slate-200">
+        <span className="text-xs font-bold text-slate-500 text-center">
           Halaman {currentPage} dari {totalPages} ({totalItems} total)
         </span>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto justify-center">
           <button
             disabled={currentPage === 1}
             onClick={() => setPage(currentPage - 1)}
