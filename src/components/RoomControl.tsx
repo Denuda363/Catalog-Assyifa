@@ -53,6 +53,23 @@ interface RoomControlProps {
   onDataChange: () => void;
 }
 
+export interface ImportPreviewData {
+  type: 'excel' | 'json';
+  successItems: any[];
+  failedItems: {
+    rowIndex: number | string;
+    name?: string;
+    reason: string;
+  }[];
+  originalDataLength: number;
+  jsonDataToSave?: {
+    medicines?: Medicine[];
+    promos?: Promo[];
+    settings?: Settings;
+  };
+  excelMedicinesToSave?: Medicine[];
+}
+
 // Hidden SUPER USER PIN
 const SUPER_USER_PIN = '151219';
 
@@ -130,6 +147,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
   
   const [settingsStatus, setSettingsStatus] = useState({ success: false, message: '' });
   const [isResetting, setIsResetting] = useState(false);
+  const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null);
 
   // Sync settings prop changes
   useEffect(() => {
@@ -624,12 +642,21 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
           return;
         }
 
-        const newMedicinesList: Medicine[] = [...medicines];
-        let importedCount = 0;
+        const successItems: Medicine[] = [];
+        const failedItems: any[] = [];
 
-        jsonData.forEach((row: any) => {
+        jsonData.forEach((row: any, i: number) => {
+          const rowIndex = i + 2; // Row 1 is header, index 0 is Row 2
           const name = row['Nama Obat'] || row['name'] || row['Nama'] || '';
-          if (!name.toString().trim()) return; // Skip if no name
+
+          if (!name || !name.toString().trim()) {
+            failedItems.push({
+              rowIndex,
+              name: 'Tidak teridentifikasi',
+              reason: 'Kolom Nama Obat kosong (wajib diisi).'
+            });
+            return;
+          }
 
           const category = row['Kategori'] || row['category'] || 'Obat Bebas';
           const activeIngredient = row['Kandungan Aktif'] || row['activeIngredient'] || '';
@@ -638,19 +665,28 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
           const pricePromo = parseCleanNumber(row['Harga Promo'] || row['pricePromo']);
           const priceKhusus = parseCleanNumber(row['Harga Khusus'] || row['priceKhusus']);
           const priceHkOtc = parseCleanNumber(row['Harga HK OTC'] || row['priceHkOtc']);
-          
+
+          const originalPrice = priceMedis || priceMb || pricePromo || 0;
+
+          if (originalPrice <= 0) {
+            failedItems.push({
+              rowIndex,
+              name: name.toString().trim(),
+              reason: 'Harga utama obat (Harga Medis/Harga Utama) tidak valid atau bernilai Rp 0.'
+            });
+            return;
+          }
+
           const indication = row['Indikasi'] || row['indication'] || '';
           const dose = row['Dosis'] || row['dose'] || '';
-          
+
           const rawPromo = String(row['Apakah Promo (Ya/Tidak)'] || row['isPromo'] || 'Tidak').trim().toLowerCase();
           const isPromo = (rawPromo === 'ya' || rawPromo === 'yes' || rawPromo === 'true' || rawPromo === '1');
           const promoPriceVal = isPromo ? (pricePromo || priceMedis) : 0;
 
-          const originalPrice = priceMedis || priceMb || pricePromo || 0;
-
           const newMed: Medicine = {
             id: 'med_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-            name: name,
+            name: name.toString().trim(),
             category: category,
             activeIngredient: activeIngredient,
             price: originalPrice,
@@ -666,17 +702,19 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
             updatedAt: new Date().toISOString()
           };
 
-          newMedicinesList.push(newMed);
-          importedCount++;
+          successItems.push(newMed);
         });
 
-        if (importedCount > 0) {
-          await replaceMedicinesList(newMedicinesList);
-          await addLogObj('Impor Excel', `Berhasil mengimpor ${importedCount} data obat baru dari berkas Excel.`);
-          alert(`Berhasil mengimpor ${importedCount} data obat dari Excel!`);
-        } else {
-          alert('Format baris Excel tidak sesuai. Harap unduh template untuk melihat tajuk kolom yang valid.');
-        }
+        // Current medicines to extend
+        const mergedMedicines = [...medicines, ...successItems];
+
+        setImportPreview({
+          type: 'excel',
+          successItems,
+          failedItems,
+          originalDataLength: jsonData.length,
+          excelMedicinesToSave: mergedMedicines
+        });
       } catch (err: any) {
         console.error(err);
         alert('Gagal mengimpor file Excel: ' + err.message);
@@ -685,6 +723,201 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
 
     reader.readAsBinaryString(file);
     e.target.value = ''; // clean input
+  };
+
+  const processJsonImportData = (parsed: any, source: 'file' | 'pasted') => {
+    const successItems: any[] = [];
+    const failedItems: any[] = [];
+
+    if (!parsed || typeof parsed !== 'object') {
+      failedItems.push({
+        rowIndex: 'Global',
+        name: 'File JSON',
+        reason: 'Format data JSON salah. Konten harus berupa objek valid.'
+      });
+      setImportPreview({
+        type: 'json',
+        successItems: [],
+        failedItems,
+        originalDataLength: 1,
+        jsonDataToSave: undefined
+      });
+      return;
+    }
+
+    const hasMedicines = 'medicines' in parsed;
+    const hasPromos = 'promos' in parsed;
+    const hasSettings = 'settings' in parsed;
+
+    if (!hasMedicines) {
+      failedItems.push({ rowIndex: 'Skema', name: 'medicines', reason: 'Kunci "medicines" (Katalog Obat) wajib disertakan.' });
+    } else if (!Array.isArray(parsed.medicines)) {
+      failedItems.push({ rowIndex: 'Skema', name: 'medicines', reason: 'Nilai dari kunci "medicines" harus berjenis daftar (Array).' });
+    }
+
+    if (!hasPromos) {
+      failedItems.push({ rowIndex: 'Skema', name: 'promos', reason: 'Kunci "promos" (Data Program Promosi) wajib disertakan.' });
+    } else if (!Array.isArray(parsed.promos)) {
+      failedItems.push({ rowIndex: 'Skema', name: 'promos', reason: 'Nilai dari kunci "promos" harus berjenis daftar (Array).' });
+    }
+
+    if (!hasSettings) {
+      failedItems.push({ rowIndex: 'Skema', name: 'settings', reason: 'Kunci "settings" (Pengaturan Apotek) wajib disertakan.' });
+    } else if (typeof parsed.settings !== 'object') {
+      failedItems.push({ rowIndex: 'Skema', name: 'settings', reason: 'Nilai dari "settings" harus berupa Objek.' });
+    }
+
+    if (failedItems.length > 0) {
+      setImportPreview({
+        type: 'json',
+        successItems: [],
+        failedItems,
+        originalDataLength: 1,
+        jsonDataToSave: undefined
+      });
+      return;
+    }
+
+    const validMedicines: Medicine[] = [];
+    parsed.medicines.forEach((med: any, index: number) => {
+      const idxStr = `Obat #${index + 1}`;
+      if (!med || typeof med !== 'object') {
+        failedItems.push({ rowIndex: idxStr, name: 'Format Salah', reason: 'Format item obat bukan merupakan objek valid.' });
+        return;
+      }
+      if (!med.id) {
+        failedItems.push({ rowIndex: idxStr, name: med.name || 'Tanpa Nama', reason: 'Kunci pengenal "id" obat wajib diisi.' });
+        return;
+      }
+      if (!med.name || !med.name.toString().trim()) {
+        failedItems.push({ rowIndex: idxStr, name: `ID: ${med.id}`, reason: 'Nama obat ("name") kosong.' });
+        return;
+      }
+      const rawPrice = typeof med.price === 'number' ? med.price : 0;
+      if (rawPrice <= 0) {
+        failedItems.push({ rowIndex: idxStr, name: med.name, reason: 'Harga dasar obat ("price") harus bertipe angka positif lebih dari Rp 0.' });
+        return;
+      }
+
+      validMedicines.push({
+        id: med.id,
+        name: med.name.toString().trim(),
+        category: med.category || 'Obat Bebas',
+        activeIngredient: med.activeIngredient || '',
+        price: rawPrice,
+        priceMedis: med.priceMedis || rawPrice,
+        priceMb: med.priceMb || rawPrice,
+        pricePromo: med.pricePromo || 0,
+        priceKhusus: med.priceKhusus || rawPrice,
+        priceHkOtc: med.priceHkOtc || rawPrice,
+        indication: med.indication || '',
+        dose: med.dose || '',
+        isPromo: !!med.isPromo,
+        promoPrice: med.promoPrice,
+        image: med.image,
+        stockStatus: med.stockStatus || 'Tersedia',
+        baseUnit: med.baseUnit || '',
+        multiUnits: med.multiUnits || [],
+        updatedAt: med.updatedAt || new Date().toISOString()
+      });
+      successItems.push({ type: 'Katalog Obat', name: med.name, detail: med.category });
+    });
+
+    const validPromos: Promo[] = [];
+    parsed.promos.forEach((promo: any, index: number) => {
+      const idxStr = `Promo #${index + 1}`;
+      if (!promo || typeof promo !== 'object') {
+        failedItems.push({ rowIndex: idxStr, name: 'Format Salah', reason: 'Format item promo bukan merupakan objek terstruktur.' });
+        return;
+      }
+      if (!promo.id) {
+        failedItems.push({ rowIndex: idxStr, name: promo.title || 'Tanpa Judul', reason: 'Kolom pengenal "id" promo kosong.' });
+        return;
+      }
+      if (!promo.title || !promo.title.toString().trim()) {
+        failedItems.push({ rowIndex: idxStr, name: `ID: ${promo.id}`, reason: 'Judul promo ("title") kosong.' });
+        return;
+      }
+      if (!promo.validUntil) {
+        failedItems.push({ rowIndex: idxStr, name: promo.title, reason: 'Masa berlaku akhir ("validUntil") wajib dicantumkan.' });
+        return;
+      }
+
+      validPromos.push({
+        id: promo.id,
+        title: promo.title.toString().trim(),
+        description: promo.description || '',
+        medicineId: promo.medicineId,
+        discountPercent: promo.discountPercent,
+        validFrom: promo.validFrom,
+        validUntil: promo.validUntil,
+        isBundling: !!promo.isBundling,
+        bundledMedicineIds: promo.bundledMedicineIds || []
+      });
+      successItems.push({ type: 'Promosi', name: promo.title, detail: 'Diskon/Bundling' });
+    });
+
+    const validSettings: Settings = {
+      adminPin: parsed.settings.adminPin || '12345',
+      whatsappNumber: parsed.settings.whatsappNumber || '6281234567890',
+      greetingCatalog: parsed.settings.greetingCatalog || '',
+      greetingPromo: parsed.settings.greetingPromo || '',
+      pharmacyLogo: parsed.settings.pharmacyLogo || '',
+      pharmacyAddress: parsed.settings.pharmacyAddress || '',
+      bgType: parsed.settings.bgType || 'pattern',
+      bgColor: parsed.settings.bgColor || '',
+      bgPattern: parsed.settings.bgPattern || '',
+      bgImageUrl: parsed.settings.bgImageUrl || ''
+    };
+    successItems.push({ type: 'Pengaturan', name: 'Profil & Konfigurasi Apotek', detail: 'Settings' });
+
+    setImportPreview({
+      type: 'json',
+      successItems,
+      failedItems,
+      originalDataLength: parsed.medicines.length + parsed.promos.length + 1,
+      jsonDataToSave: {
+        medicines: validMedicines,
+        promos: validPromos,
+        settings: validSettings
+      }
+    });
+  };
+
+  const confirmAndExecuteImport = async () => {
+    if (!importPreview) return;
+
+    try {
+      if (importPreview.type === 'excel' && importPreview.excelMedicinesToSave) {
+        await replaceMedicinesList(importPreview.excelMedicinesToSave);
+        await addLogObj('Impor Excel', `Berhasil mengimpor ${importPreview.successItems.length} data obat baru dari berkas Excel.`);
+        alert(`Berhasil mengimpor ${importPreview.successItems.length} data obat dari Excel!`);
+        if (onDataChange) onDataChange();
+      } else if (importPreview.type === 'json' && importPreview.jsonDataToSave) {
+        const { medicines: mList, promos: pList, settings: sObj } = importPreview.jsonDataToSave;
+        if (mList) await replaceMedicinesList(mList);
+        if (pList) await replacePromosList(pList);
+        if (sObj) await saveSettingsObj(sObj);
+
+        setSettingsStatus({
+          success: true,
+          message: 'Aplikasi Berhasil Berbagi Hubungan! Basis data telah dipulihkan sepenuhnya dari cadangan JSON.'
+        });
+        setImportStatus({
+          success: true,
+          message: 'Impor data basis berhasil! Silakan refresh halaman.'
+        });
+        await addLogObj('Pulihkan JSON', `Restore database XML/JSON selesai (${mList?.length || 0} obat, ${pList?.length || 0} promo).`);
+        alert('Pemulihan cadangan data berhasil disinkronisasi!');
+        setImportJson('');
+        if (onDataChange) onDataChange();
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal mengeksekusi impor data: ' + err.message);
+    } finally {
+      setImportPreview(null);
+    }
   };
 
   // JSON Restore Handler from Settings/Aturan Tab
@@ -697,25 +930,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
       try {
         const text = evt.target?.result as string;
         const parsed = JSON.parse(text);
-        if (parsed.medicines && parsed.promos && parsed.settings) {
-          await replaceMedicinesList(parsed.medicines);
-          await replacePromosList(parsed.promos);
-          await saveSettingsObj(parsed.settings);
-          // if (parsed.logs) saveLogs(parsed.logs); // Ignore logs during reset to keep history intact
-
-          setSettingsStatus({
-            success: true,
-            message: 'Aplikasi Berhasil Berbagi Hubungan! Basis data telah dipulihkan sepenuhnya dari cadangan JSON.'
-          });
-          await addLogObj('Pulihkan JSON', 'Seluruh database di-restore sukses menggunakan berkas JSON.');
-          alert('Pemulihan cadangan data XML/JSON berhasil disinkronisasi!');
-        } else {
-          setSettingsStatus({
-            success: false,
-            message: 'Berkas cadangan tidak valid. Pastikan format mengandung "medicines", "promos", dan "settings".'
-          });
-          alert('Kesalahan pemulihan: Struktur berkas tidak lengkap.');
-        }
+        processJsonImportData(parsed, 'file');
       } catch {
         setSettingsStatus({
           success: false,
@@ -752,17 +967,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
 
     try {
       const parsed = JSON.parse(importJson);
-      if (parsed.medicines && parsed.promos && parsed.settings) {
-        await replaceMedicinesList(parsed.medicines);
-        await replacePromosList(parsed.promos);
-        await saveSettingsObj(parsed.settings);
-
-        setImportStatus({ success: true, message: 'Impor data basis berhasil! Silakan refresh halaman.' });
-        await addLogObj('Super Impor', 'Berhasil merekam impor basis data mentah secara massal.');
-        setImportJson('');
-      } else {
-        setImportStatus({ success: false, message: 'Skema JSON tidak valid. Pastikan berisi medicines, promos, dan settings.' });
-      }
+      processJsonImportData(parsed, 'pasted');
     } catch {
       setImportStatus({ success: false, message: 'Gagal mendaur ulang JSON. Periksa keaslian format berkas!' });
     }
@@ -1308,52 +1513,58 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                             {medicineForm.multiUnits && medicineForm.multiUnits.length > 0 ? (
                               <div className="space-y-2">
                                 {medicineForm.multiUnits.map((u, oIdx) => (
-                                  <div key={oIdx} className="flex items-center gap-2 bg-white p-2 rounded-lg border border-indigo-50 shadow-3xs">
-                                    <div className="text-[11px] text-slate-600 font-medium">
-                                      1
+                                  <div key={oIdx} className="flex flex-col gap-1.5 bg-white p-2.5 rounded-lg border border-indigo-100 shadow-3xs">
+                                    <div className="flex items-center gap-2">
+                                      <div className="text-[11px] text-slate-600 font-medium">
+                                        1
+                                      </div>
+                                      <input
+                                        type="text"
+                                        placeholder="Nama (e.g. Box)"
+                                        value={u.name}
+                                        onChange={(e) => {
+                                          const updatedUnits = [...medicineForm.multiUnits];
+                                          updatedUnits[oIdx].name = e.target.value;
+                                          setMedicineForm({...medicineForm, multiUnits: updatedUnits});
+                                        }}
+                                        className="flex-1 min-w-0 px-2 py-1 bg-slate-50 border border-slate-200 text-slate-800 rounded outline-none text-[10px] focus:ring-1 focus:ring-indigo-500 font-semibold"
+                                        required
+                                      />
+                                      <div className="text-[11px] text-slate-500 font-medium">
+                                        =
+                                      </div>
+                                      <input
+                                        type="number"
+                                        min={1}
+                                        placeholder="Jumlah"
+                                        value={u.multiplier || ''}
+                                        onChange={(e) => {
+                                          const updatedUnits = [...medicineForm.multiUnits];
+                                          updatedUnits[oIdx].multiplier = Math.max(1, Number(e.target.value));
+                                          setMedicineForm({...medicineForm, multiUnits: updatedUnits});
+                                        }}
+                                        className="w-16 px-1.5 py-1 bg-slate-50 border border-slate-200 text-slate-800 rounded outline-none text-[10px] focus:ring-1 focus:ring-indigo-500 text-center font-bold"
+                                        required
+                                      />
+                                      <div className="text-[11px] text-slate-600 font-bold select-none shrink-0">
+                                        {medicineForm.baseUnit || 'Lembar'}
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const updatedUnits = medicineForm.multiUnits.filter((_, i) => i !== oIdx);
+                                          setMedicineForm({...medicineForm, multiUnits: updatedUnits});
+                                        }}
+                                        className="p-1 text-rose-500 hover:text-white hover:bg-rose-500 rounded transition-colors shrink-0"
+                                        title="Hapus Satuan"
+                                      >
+                                        <X size={12} />
+                                      </button>
                                     </div>
-                                    <input
-                                      type="text"
-                                      placeholder="Nama (e.g. Box)"
-                                      value={u.name}
-                                      onChange={(e) => {
-                                        const updatedUnits = [...medicineForm.multiUnits];
-                                        updatedUnits[oIdx].name = e.target.value;
-                                        setMedicineForm({...medicineForm, multiUnits: updatedUnits});
-                                      }}
-                                      className="flex-1 min-w-0 px-2 py-1 bg-slate-50 border border-slate-200 text-slate-800 rounded outline-none text-[10px] focus:ring-1 focus:ring-indigo-500 font-semibold"
-                                      required
-                                    />
-                                    <div className="text-[11px] text-slate-500 font-medium">
-                                      =
+                                    <div className="px-2 py-1 bg-emerald-50 text-emerald-700 text-[9px] rounded-md border border-emerald-100 flex justify-between items-center font-medium">
+                                      <span>Konversi Harga Medis:</span>
+                                      <span className="font-bold">{formatRupiah((medicineForm.priceMedis || medicineForm.price || 0) * (u.multiplier || 1))} / {u.name || 'Satuan'}</span>
                                     </div>
-                                    <input
-                                      type="number"
-                                      min={1}
-                                      placeholder="Jumlah"
-                                      value={u.multiplier || ''}
-                                      onChange={(e) => {
-                                        const updatedUnits = [...medicineForm.multiUnits];
-                                        updatedUnits[oIdx].multiplier = Math.max(1, Number(e.target.value));
-                                        setMedicineForm({...medicineForm, multiUnits: updatedUnits});
-                                      }}
-                                      className="w-16 px-1.5 py-1 bg-slate-50 border border-slate-200 text-slate-800 rounded outline-none text-[10px] focus:ring-1 focus:ring-indigo-500 text-center font-bold"
-                                      required
-                                    />
-                                    <div className="text-[11px] text-slate-600 font-bold select-none shrink-0">
-                                      {medicineForm.baseUnit || 'Lembar'}
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const updatedUnits = medicineForm.multiUnits.filter((_, i) => i !== oIdx);
-                                        setMedicineForm({...medicineForm, multiUnits: updatedUnits});
-                                      }}
-                                      className="p-1 text-rose-500 hover:text-white hover:bg-rose-500 rounded transition-colors shrink-0"
-                                      title="Hapus Satuan"
-                                    >
-                                      <X size={12} />
-                                    </button>
                                   </div>
                                 ))}
                               </div>
@@ -2451,6 +2662,146 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                 </form>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Import Preview Modal */}
+      {importPreview && (
+        <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs font-sans overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden animate-scaleIn">
+            {/* Header */}
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <Database className="text-indigo-600 animate-pulse" size={18} />
+                <h3 className="font-extrabold text-slate-800 text-xs sm:text-sm tracking-tight uppercase">
+                  Pratinjau Impor Data {importPreview.type === 'excel' ? 'Excel' : 'JSON'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setImportPreview(null)}
+                className="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-150 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Content area */}
+            <div className="p-5 overflow-y-auto space-y-5 flex-1">
+              
+              {/* Summary Stats Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="bg-emerald-50/50 border border-emerald-250 border-emerald-100/60 p-4 rounded-xl flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+                    <CheckCircle size={18} />
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider block leading-none">Total Berhasil Validasi</span>
+                    <h4 className="text-lg font-black text-emerald-800 leading-none mt-1.5">
+                      {importPreview.successItems.length} <span className="text-[10px] font-medium text-emerald-600">item / baris</span>
+                    </h4>
+                  </div>
+                </div>
+
+                <div className="bg-rose-50/50 border border-rose-250 border-rose-100/60 p-4 rounded-xl flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-rose-100 flex items-center justify-center text-rose-700 shrink-0">
+                    <AlertCircle size={18} />
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-bold text-rose-600 uppercase tracking-wider block leading-none">Total Gagal Validasi</span>
+                    <h4 className="text-lg font-black text-rose-800 leading-none mt-1.5">
+                      {importPreview.failedItems.length} <span className="text-[10px] font-medium text-rose-600">item / baris</span>
+                    </h4>
+                  </div>
+                </div>
+              </div>
+
+              {/* Warnings / Failures Section */}
+              {importPreview.failedItems.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-[9px] font-bold text-rose-600 uppercase tracking-wider block flex items-center gap-1 leading-none">
+                    <AlertCircle size={12} className="text-rose-500" /> Detail Kegagalan Validasi ({importPreview.failedItems.length})
+                  </span>
+                  <div className="bg-rose-50/20 border border-rose-100 rounded-xl max-h-48 overflow-y-auto divide-y divide-rose-100/40">
+                    {importPreview.failedItems.map((fail, i) => (
+                      <div key={i} className="p-3 flex items-start gap-2.5 text-[11px] align-top">
+                        <span className="bg-rose-100 text-rose-700 text-[8.5px] px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider whitespace-nowrap mt-0.5">
+                          Baris / Posisi {fail.rowIndex}
+                        </span>
+                        <div className="space-y-0.5 text-left">
+                          {fail.name && <h5 className="font-extrabold text-slate-700 text-xs">{fail.name}</h5>}
+                          <p className="text-rose-700 leading-relaxed font-semibold">{fail.reason}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Successful items list */}
+              {importPreview.successItems.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider block flex items-center gap-1 leading-none">
+                    <CheckCircle size={12} className="text-emerald-500" /> Pratinjau Item Sukses ({importPreview.successItems.length})
+                  </span>
+                  <div className="bg-slate-50/50 border border-slate-150 border-slate-200/50 rounded-xl max-h-44 overflow-y-auto divide-y divide-slate-100/80">
+                    {importPreview.successItems.map((item, i) => (
+                      <div key={i} className="p-2.5 flex items-center justify-between text-[11px]">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-indigo-50 text-indigo-700 text-[8px] px-1 py-0.5 rounded font-bold uppercase tracking-wide">
+                            {item.category || item.type || (importPreview.type === 'excel' ? 'Obat' : 'Data')}
+                          </span>
+                          <span className="font-semibold text-slate-700">{item.name}</span>
+                        </div>
+                        {item.price !== undefined && (
+                          <span className="font-mono text-[10px] text-slate-500 font-bold">{formatRupiah(item.price)}</span>
+                        )}
+                        {item.detail && (
+                          <span className="text-[9px] text-slate-400 italic">{item.detail}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Learning guide details */}
+              <div className="text-[10px] text-slate-500 bg-slate-50 border border-slate-150 border-slate-100 p-2.5 rounded-xl leading-relaxed">
+                {importPreview.failedItems.length > 0 ? (
+                  <p>
+                    <span className="font-bold text-slate-600">Catatan Penting:</span> Beberapa baris atau modul data mengalami kegagalan validasi di atas. Jika Anda melanjutkan impor, sistem <span className="text-emerald-600 font-bold">hanya akan menyimpan {importPreview.successItems.length} item yang sukses</span>, dan melewatkan baris-baris gagal secara otomatis demi stabilitas data aplikasi.
+                  </p>
+                ) : (
+                  <p>
+                    <span className="text-emerald-600 font-bold">Validasi Berhasil Sempurna!</span> Seluruh item data ({importPreview.successItems.length}) telah lolos penyaringan standar apotek dan siap diintegrasikan penuh ke memori awan utama.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Footer controls */}
+            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex justify-end gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setImportPreview(null)}
+                className="px-3.5 py-1.5 hover:bg-slate-200 text-slate-600 font-bold rounded-lg transition-all cursor-pointer text-[11px] active:scale-98"
+              >
+                Batalkan
+              </button>
+              <button
+                type="button"
+                onClick={confirmAndExecuteImport}
+                disabled={importPreview.successItems.length === 0}
+                className={`px-4 py-1.5 font-bold rounded-lg transition-all text-[11px] flex items-center gap-1.5 active:scale-98 shadow-xs ${
+                  importPreview.successItems.length > 0 
+                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer' 
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                }`}
+              >
+                <Check size={12} /> Konfirmasi & Impor Masuk
+              </button>
+            </div>
           </div>
         </div>
       )}

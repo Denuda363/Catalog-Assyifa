@@ -43,13 +43,7 @@ export function subscribeLogs(callback: (logs: ActionLog[]) => void) {
 }
 
 export function removeUndefined<T>(obj: T): T {
-  const newObj = { ...obj } as any;
-  Object.keys(newObj).forEach((key) => {
-    if (newObj[key] === undefined) {
-      delete newObj[key];
-    }
-  });
-  return newObj as T;
+  return JSON.parse(JSON.stringify(obj));
 }
 
 export async function saveMedicine(medicine: Medicine) {
@@ -94,13 +88,17 @@ export async function saveMedicinesList(medicines: Medicine[]) {
 // Warning: For simplicity, replacing the entire collection here is done by deleting all then adding.
 // A more complete implementation might diff, but for 'reset' and 'import', deleting all is needed.
 export async function replaceMedicinesList(medicines: Medicine[]) {
-    // Delete existing
+    // Delete existing in chunks
     const existing = await getDocs(collection(db, 'medicines'));
-    const batch = writeBatch(db);
-    existing.forEach(docSnap => batch.delete(docSnap.ref));
+    const docs = existing.docs;
+    for(let i=0; i < docs.length; i+=490) {
+        const chunk = docs.slice(i, i+490);
+        const batch = writeBatch(db);
+        chunk.forEach(docSnap => batch.delete(docSnap.ref));
+        await batch.commit();
+    }
     
-    // Chunk writes if array is > 500 (Firestore limit), though typically we won't hit it right now
-    // Actually, simple sequential chunks
+    // Write new in chunks
     for(let i=0; i < medicines.length; i+=490) {
         const chunk = medicines.slice(i, i+490);
         const subBatch = writeBatch(db);
@@ -110,11 +108,17 @@ export async function replaceMedicinesList(medicines: Medicine[]) {
 }
 
 export async function replacePromosList(promos: Promo[]) {
+    // Delete existing in chunks
     const existing = await getDocs(collection(db, 'promos'));
-    const batch = writeBatch(db);
-    existing.forEach(docSnap => batch.delete(docSnap.ref));
-    await batch.commit();
+    const docs = existing.docs;
+    for(let i=0; i < docs.length; i+=490) {
+        const chunk = docs.slice(i, i+490);
+        const batch = writeBatch(db);
+        chunk.forEach(docSnap => batch.delete(docSnap.ref));
+        await batch.commit();
+    }
 
+    // Write new in chunks
     for(let i=0; i < promos.length; i+=490) {
         const chunk = promos.slice(i, i+490);
         const subBatch = writeBatch(db);
@@ -145,11 +149,15 @@ export async function resetAllDataToDefault() {
   };
   await saveSettingsObj(defaultSettings);
 
-  // 4. Delete logs
+  // 4. Delete logs in chunks
   const logsSnap = await getDocs(collection(db, 'logs'));
-  const batch = writeBatch(db);
-  logsSnap.forEach(docSnap => batch.delete(docSnap.ref));
-  await batch.commit();
+  const logDocs = logsSnap.docs;
+  for(let i=0; i < logDocs.length; i+=490) {
+      const chunk = logDocs.slice(i, i+490);
+      const batch = writeBatch(db);
+      chunk.forEach(docSnap => batch.delete(docSnap.ref));
+      await batch.commit();
+  }
 
   // 5. Create initial log
   await addLogObj('Reset Data', 'Mengembalikan seluruh data medicine, promo, pengaturan, dan riwayat log ke kondisi bawaan.');
