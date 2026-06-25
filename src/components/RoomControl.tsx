@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Medicine, Promo, ActionLog, Settings } from '../types';
+import { Medicine, Promo, ActionLog, Settings, MultiUnit } from '../types';
 import { formatRupiah } from '../utils';
 import { 
   saveMedicine, 
@@ -570,11 +570,17 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
         'Nama Obat',
         'Kategori',
         'Kandungan Aktif',
+        'Satuan Dasar',
+        'Status Stok',
         'Harga Medis',
         'Harga MB',
         'Harga Promo',
         'Harga Khusus',
         'Harga HK OTC',
+        'Satuan Tambahan 1',
+        'Pengali 1',
+        'Satuan Tambahan 2',
+        'Pengali 2',
         'Indikasi',
         'Dosis',
         'Apakah Promo (Ya/Tidak)'
@@ -585,11 +591,17 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
           'Nama Obat': 'Sanmol Tablet 500mg',
           'Kategori': 'Obat Bebas',
           'Kandungan Aktif': 'Paracetamol 500mg',
+          'Satuan Dasar': 'Tablet',
+          'Status Stok': 'Tersedia',
           'Harga Medis': 5000,
           'Harga MB': 4800,
           'Harga Promo': 4500,
           'Harga Khusus': 4200,
           'Harga HK OTC': 4000,
+          'Satuan Tambahan 1': 'Strip',
+          'Pengali 1': 10,
+          'Satuan Tambahan 2': 'Box',
+          'Pengali 2': 100,
           'Indikasi': 'Meredakan demam dan sakit kepala ringan.',
           'Dosis': 'Dewasa: 1-2 tablet sekali minum, 3-4 kali sehari.',
           'Apakah Promo (Ya/Tidak)': 'Tidak'
@@ -598,11 +610,17 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
           'Nama Obat': 'Amoxisan 500mg Kapsul',
           'Kategori': 'Obat Keras',
           'Kandungan Aktif': 'Amoxicillin 500mg',
+          'Satuan Dasar': 'Kapsul',
+          'Status Stok': 'Tersedia',
           'Harga Medis': 15000,
           'Harga MB': 14000,
           'Harga Promo': 13000,
           'Harga Khusus': 12500,
           'Harga HK OTC': 12000,
+          'Satuan Tambahan 1': 'Strip',
+          'Pengali 1': 10,
+          'Satuan Tambahan 2': '',
+          'Pengali 2': '',
           'Indikasi': 'Infeksi bakteri pada pernapasan, uro-genital, kulit, dll.',
           'Dosis': 'Sesuai petunjuk dokter. Umumnya 1 kapsul setiap 8 jam.',
           'Apakah Promo (Ya/Tidak)': 'Tidak'
@@ -666,6 +684,9 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
 
           const category = row['Kategori'] || row['category'] || 'Obat Bebas';
           const activeIngredient = row['Kandungan Aktif'] || row['activeIngredient'] || '';
+          const baseUnit = row['Satuan Dasar'] || row['baseUnit'] || 'Pcs';
+          const stockStatusRaw = String(row['Status Stok'] || row['stockStatus'] || 'Tersedia').trim().toLowerCase();
+          const stockStatus = stockStatusRaw === 'kosong' ? 'Kosong' : 'Tersedia';
           const priceMedis = parseCleanNumber(row['Harga Medis'] || row['priceMedis'] || row['Harga']);
           const priceMb = parseCleanNumber(row['Harga MB'] || row['priceMb']);
           const pricePromo = parseCleanNumber(row['Harga Promo'] || row['pricePromo']);
@@ -690,6 +711,20 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
           const isPromo = (rawPromo === 'ya' || rawPromo === 'yes' || rawPromo === 'true' || rawPromo === '1');
           const promoPriceVal = isPromo ? (pricePromo || priceMedis) : 0;
 
+          const multiUnits: MultiUnit[] = [];
+          
+          const u1Name = row['Satuan Tambahan 1'] || row['Unit 1'];
+          const u1Mult = parseCleanNumber(row['Pengali 1'] || row['Multiplier 1']);
+          if (u1Name && u1Mult > 0) {
+            multiUnits.push({ name: u1Name.toString().trim(), multiplier: u1Mult });
+          }
+
+          const u2Name = row['Satuan Tambahan 2'] || row['Unit 2'];
+          const u2Mult = parseCleanNumber(row['Pengali 2'] || row['Multiplier 2']);
+          if (u2Name && u2Mult > 0) {
+            multiUnits.push({ name: u2Name.toString().trim(), multiplier: u2Mult });
+          }
+
           const newMed: Medicine = {
             id: 'med_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
             name: name.toString().trim(),
@@ -701,6 +736,9 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
             pricePromo: pricePromo || promoPriceVal,
             priceKhusus: priceKhusus || originalPrice,
             priceHkOtc: priceHkOtc || originalPrice,
+            baseUnit: baseUnit,
+            multiUnits: multiUnits.length > 0 ? multiUnits : undefined,
+            stockStatus: stockStatus as 'Tersedia' | 'Kosong',
             indication: indication,
             dose: dose,
             isPromo: isPromo,
@@ -1297,22 +1335,25 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
 
                 {/* Adding / Editing Modal Form */}
                 {(isAddingMedicine || editingMedicine) && (
-                  <form onSubmit={handleSaveMedicine} className="bg-slate-50/50 rounded-xl border border-blue-100 p-5 space-y-4">
-                    <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-                      <h4 className="font-bold text-xs text-blue-800 uppercase tracking-widest">
-                        {isAddingMedicine ? 'Tambah Data Obat Baru' : `Ubah Data: ${editingMedicine?.name}`}
-                      </h4>
-                      <button
-                        id="cancel-med-form"
-                        type="button"
-                        onClick={() => { setIsAddingMedicine(false); setEditingMedicine(null); }}
-                        className="text-slate-400 hover:text-slate-600"
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+                    <div className="my-auto w-full max-w-3xl">
+                      <form onSubmit={handleSaveMedicine} className="bg-white rounded-2xl shadow-2xl flex flex-col relative overflow-hidden">
+                        <div className="flex justify-between items-center p-4 sm:p-5 border-b border-slate-100 bg-slate-50/80">
+                          <h4 className="font-extrabold text-sm text-blue-800 uppercase tracking-widest flex items-center gap-2">
+                            {isAddingMedicine ? 'Tambah Data Obat Baru' : `Ubah Data: ${editingMedicine?.name}`}
+                          </h4>
+                          <button
+                            id="cancel-med-form"
+                            type="button"
+                            onClick={() => { setIsAddingMedicine(false); setEditingMedicine(null); }}
+                            className="text-slate-400 hover:text-slate-600 bg-white hover:bg-slate-100 rounded-full p-1.5 transition-colors"
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 sm:p-5 max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                       {/* Name */}
                       <div className="space-y-1">
                         <label className="text-[11px] font-bold text-slate-500 uppercase">Nama Merk Obat:</label>
@@ -1623,26 +1664,29 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                           </div>
                         </div>
                       </div>
-                    </div>
+                          </div>
+                        </div>
 
-                    <div className="pt-3 border-t border-slate-200 flex justify-end gap-2 text-xs font-semibold">
-                      <button
-                        id="cancel-med-form-btn-2"
-                        type="button"
-                        onClick={() => { setIsAddingMedicine(false); setEditingMedicine(null); }}
-                        className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-600"
-                      >
-                        Batal
-                      </button>
-                      <button
-                        id="submit-med-form-btn"
-                        type="submit"
-                        className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-xs"
-                      >
-                        {isAddingMedicine ? 'Tambahkan Ke Katalog' : 'Simpan Perubahan'}
-                      </button>
+                        <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 text-xs font-semibold shrink-0">
+                          <button
+                            id="cancel-med-form-btn-2"
+                            type="button"
+                            onClick={() => { setIsAddingMedicine(false); setEditingMedicine(null); }}
+                            className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors shadow-sm"
+                          >
+                            Batal
+                          </button>
+                          <button
+                            id="submit-med-form-btn"
+                            type="submit"
+                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-colors"
+                          >
+                            {isAddingMedicine ? 'Tambahkan Ke Katalog' : 'Simpan Perubahan'}
+                          </button>
+                        </div>
+                      </form>
                     </div>
-                  </form>
+                  </div>
                 )}
                 {/* Desktop Version */}
                 <div className="hidden md:block overflow-x-auto max-h-[500px] overflow-y-auto border border-slate-100 rounded-xl bg-white shadow-xs scrollbar-thin scrollbar-thumb-slate-200">
@@ -1821,22 +1865,25 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
 
                 {/* Promo Form */}
                 {(isAddingPromo || editingPromo) && (
-                  <form onSubmit={handleSavePromo} className="bg-slate-50/50 rounded-xl border border-blue-100 p-5 space-y-4">
-                    <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-                      <h4 className="font-bold text-xs text-blue-800 uppercase tracking-widest">
-                        {isAddingPromo ? 'Tambahkan Brosur Promo Baru' : `Ubah Brosur: ${editingPromo?.title}`}
-                      </h4>
-                      <button
-                        id="cancel-promo-form"
-                        type="button"
-                        onClick={() => { setIsAddingPromo(false); setEditingPromo(null); }}
-                        className="text-slate-400 hover:text-slate-600"
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+                    <div className="my-auto w-full max-w-3xl">
+                      <form onSubmit={handleSavePromo} className="bg-white rounded-2xl shadow-2xl flex flex-col relative overflow-hidden">
+                        <div className="flex justify-between items-center p-4 sm:p-5 border-b border-slate-100 bg-slate-50/80">
+                          <h4 className="font-extrabold text-sm text-blue-800 uppercase tracking-widest flex items-center gap-2">
+                            {isAddingPromo ? 'Tambahkan Brosur Promo Baru' : `Ubah Brosur: ${editingPromo?.title}`}
+                          </h4>
+                          <button
+                            id="cancel-promo-form"
+                            type="button"
+                            onClick={() => { setIsAddingPromo(false); setEditingPromo(null); }}
+                            className="text-slate-400 hover:text-slate-600 bg-white hover:bg-slate-100 rounded-full p-1.5 transition-colors cursor-pointer"
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 sm:p-5 max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                       {/* Title */}
                       <div className="space-y-1">
                         <label className="text-[11px] font-bold text-slate-500 uppercase">Judul Promo / Kampanye:</label>
@@ -2058,25 +2105,28 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                         />
                       </div>
                     </div>
+                  </div>
 
-                    <div className="pt-3 border-t border-slate-200 flex justify-end gap-2 text-xs font-semibold">
-                      <button
-                        id="cancel-promo-form-btn-2"
-                        type="button"
-                        onClick={() => { setIsAddingPromo(false); setEditingPromo(null); }}
-                        className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-600"
-                      >
-                        Batal
-                      </button>
-                      <button
-                        id="submit-promo-form-btn"
-                        type="submit"
-                        className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-xs"
-                      >
-                        {isAddingPromo ? 'Tambahkan Banner' : 'Simpan Brosur'}
-                      </button>
+                  <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 text-xs font-semibold shrink-0">
+                          <button
+                            id="cancel-promo-form-btn-2"
+                            type="button"
+                            onClick={() => { setIsAddingPromo(false); setEditingPromo(null); }}
+                            className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors shadow-sm"
+                          >
+                            Batal
+                          </button>
+                          <button
+                            id="submit-promo-form-btn"
+                            type="submit"
+                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-colors"
+                          >
+                            {isAddingPromo ? 'Tambahkan Banner' : 'Simpan Brosur'}
+                          </button>
+                        </div>
+                      </form>
                     </div>
-                  </form>
+                  </div>
                 )}
 
                 {/* Promos table */}
