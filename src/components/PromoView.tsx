@@ -194,35 +194,79 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
                   </div>
 
                   {/* Bundling products details */}
-                  {p.isBundling && bundledMedicinesList.length > 0 && (
-                    <div className="space-y-2 bg-indigo-50/40 dark:bg-indigo-900/10 p-3 rounded-xl border border-indigo-100/60 dark:border-indigo-800/30 mt-1">
-                      <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 uppercase block tracking-wider">Isi Paket Bundling:</span>
-                      <div className="grid grid-cols-1 gap-1.5 max-h-36 overflow-y-auto pr-1">
-                        {bundledMedicinesList.map((bundled) => (
-                          <div 
-                            key={bundled.id}
-                            onClick={() => onSelectMedicine(bundled)}
-                            className="bg-white dark:bg-slate-900 p-2 rounded-lg border border-indigo-100/75 dark:border-indigo-800/50 flex items-center justify-between cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/40 hover:border-indigo-300 dark:hover:border-indigo-600 transition-all shadow-2xs"
-                          >
-                            <div className="flex items-center gap-2">
-                              {bundled.image ? (
-                                <img src={bundled.image} alt={bundled.name} className="w-8 h-8 object-cover rounded" referrerPolicy="no-referrer" />
-                              ) : (
-                                <div className="w-8 h-8 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 font-bold text-[8px] uppercase">
-                                  MED
+                  {p.isBundling && bundledMedicinesList.length > 0 && (() => {
+                    const totalOriginal = bundledMedicinesList.reduce((acc, m) => acc + (m.priceMedis || m.price), 0);
+                    const applyBundleDiscount = p.discountPercent 
+                      ? totalOriginal * (1 - p.discountPercent / 100) 
+                      : bundledMedicinesList.reduce((acc, m) => {
+                          return acc + (m.isPromo && (m.pricePromo || m.promoPrice) ? (m.pricePromo || m.promoPrice || 0) : (m.priceMedis || m.price));
+                        }, 0);
+
+                    return (
+                      <div className="space-y-2 bg-indigo-50/40 dark:bg-indigo-900/10 p-3 rounded-xl border border-indigo-100/60 dark:border-indigo-800/30 mt-1">
+                        <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 uppercase block tracking-wider">Isi Paket Bundling:</span>
+                        <div className="grid grid-cols-1 gap-1.5 max-h-36 overflow-y-auto pr-1">
+                          {bundledMedicinesList.map((bundled) => {
+                            let itemOriginal = bundled.priceMedis || bundled.price;
+                            let itemPromo = bundled.isPromo && (bundled.pricePromo || bundled.promoPrice) 
+                               ? (bundled.pricePromo || bundled.promoPrice || itemOriginal) 
+                               : itemOriginal;
+                            
+                            if (p.discountPercent) {
+                               itemPromo = itemOriginal * (1 - p.discountPercent / 100);
+                            }
+                            
+                            const hasDiscount = itemPromo < itemOriginal;
+                            return (
+                              <div 
+                                key={bundled.id}
+                                onClick={() => onSelectMedicine(bundled)}
+                                className="bg-white dark:bg-slate-900 p-2 rounded-lg border border-indigo-100/75 dark:border-indigo-800/50 flex items-center justify-between cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/40 hover:border-indigo-300 dark:hover:border-indigo-600 transition-all shadow-2xs"
+                              >
+                                <div className="flex items-center gap-2">
+                                  {bundled.image ? (
+                                    <img src={bundled.image} alt={bundled.name} className="w-8 h-8 object-cover rounded" referrerPolicy="no-referrer" />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 font-bold text-[8px] uppercase">
+                                      MED
+                                    </div>
+                                  )}
+                                  <div className="leading-tight">
+                                    <p className="font-extrabold text-[10px] sm:text-[11px] text-indigo-950 dark:text-indigo-200 line-clamp-1">{bundled.name}</p>
+                                    <p className="text-[8px] sm:text-[9px] text-slate-400 dark:text-slate-500">{bundled.category}</p>
+                                  </div>
                                 </div>
-                              )}
-                              <div className="leading-tight">
-                                <p className="font-extrabold text-[10px] sm:text-[11px] text-indigo-950 dark:text-indigo-200 line-clamp-1">{bundled.name}</p>
-                                <p className="text-[8px] sm:text-[9px] text-slate-400 dark:text-slate-500">{bundled.category}</p>
+                                <div className="flex flex-col items-end shrink-0">
+                                  {hasDiscount ? (
+                                    <>
+                                      <span className="text-[10px] font-black text-rose-600 dark:text-rose-400">{formatRupiah(itemPromo)}</span>
+                                      <span className="text-[8px] text-slate-400 dark:text-slate-500 line-through">{formatRupiah(itemOriginal)}</span>
+                                    </>
+                                  ) : (
+                                    <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400">{formatRupiah(itemOriginal)}</span>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                            <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 shrink-0">{formatRupiah(bundled.priceMedis || bundled.price)}</span>
-                          </div>
-                        ))}
+                            );
+                          })}
+                        </div>
+                        
+                        <div className="mt-2 pt-2 border-t border-indigo-200/60 dark:border-indigo-800/60 flex items-center justify-between">
+                           <span className="text-[11px] font-black text-indigo-900 dark:text-indigo-300 uppercase">Total Paket</span>
+                           <div className="flex flex-col items-end">
+                              {applyBundleDiscount < totalOriginal ? (
+                                <>
+                                  <span className="text-[12px] font-black text-rose-600 dark:text-rose-400">{formatRupiah(applyBundleDiscount)}</span>
+                                  <span className="text-[9px] text-slate-400 dark:text-slate-500 line-through">{formatRupiah(totalOriginal)}</span>
+                                </>
+                              ) : (
+                                <span className="text-[12px] font-black text-indigo-700 dark:text-indigo-400">{formatRupiah(totalOriginal)}</span>
+                              )}
+                           </div>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {!p.isBundling && linkedMed && (
                     <div 
