@@ -1190,7 +1190,6 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
               </button>
             </div>
             
-            <p className="text-[10px] text-slate-400">Gunakan PIN default: <code className="font-bold">12345</code></p>
           </form>
         </div>
       ) : (
