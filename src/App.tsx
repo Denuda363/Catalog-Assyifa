@@ -23,7 +23,9 @@ import {
   Settings2, 
   Activity, 
   PhoneCall, 
-  ShieldCheck 
+  ShieldCheck,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -33,6 +35,19 @@ export default function App() {
   const [promos, setPromos] = useState<Promo[]>([]);
   const [settings, setSettings] = useState<Settings>({ adminPin: '12345', whatsappNumber: '6281234567890' });
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('theme') === 'dark';
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
 
   // Initialize and load data on component mount
   useEffect(() => {
@@ -180,14 +195,14 @@ export default function App() {
 
   return (
     <div 
-      className={`min-h-screen font-sans antialiased text-slate-700 selection:bg-blue-105 selection:bg-blue-100 selection:text-blue-900 ${
-        (!settings.bgType || settings.bgType === 'default') ? 'bg-slate-50' : (settings.bgType === 'solid' && settings.bgColor?.startsWith('bg-') ? settings.bgColor : '')
+      className={`min-h-screen font-sans antialiased text-slate-700 dark:text-slate-200 selection:bg-blue-100 dark:selection:bg-blue-900 selection:text-blue-900 dark:selection:text-blue-100 ${
+        (!settings.bgType || settings.bgType === 'default') ? 'bg-slate-50 dark:bg-slate-950' : (settings.bgType === 'solid' && settings.bgColor?.startsWith('bg-') ? settings.bgColor : '')
       }`}
       style={bgStyle}
     >
       
       {/* Top micro announcement bar */}
-      <div className="bg-slate-900 text-white/90 text-xs py-2 px-6 shrink-0 shadow-xs border-b border-slate-800">
+      <div className="bg-slate-900 dark:bg-slate-950 text-white/90 text-xs py-2 px-6 shrink-0 shadow-xs border-b border-slate-800 dark:border-slate-900 transition-colors">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-center text-[10px] md:text-xs">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
@@ -207,7 +222,7 @@ export default function App() {
       </div>
 
       {/* Hero Brand Section */}
-      <header className="bg-white border-b border-slate-200 py-4 sm:py-6 px-4 sm:px-6 shrink-0 shadow-sm">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 py-4 sm:py-6 px-4 sm:px-6 shrink-0 shadow-sm transition-colors">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-3.5 text-center sm:text-left">
             {/* Visual medical icon/avatar */}
@@ -215,7 +230,7 @@ export default function App() {
               <img 
                 src={settings.pharmacyLogo} 
                 alt="Logo Apotek" 
-                className="w-12 h-12 rounded-xl object-contain border border-slate-100 bg-slate-50 p-0.5 shrink-0 shadow-xs" 
+                className="w-12 h-12 rounded-xl object-contain border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-0.5 shrink-0 shadow-xs" 
                 referrerPolicy="no-referrer"
               />
             ) : (
@@ -224,30 +239,41 @@ export default function App() {
               </div>
             )}
             <div className="space-y-0.5">
-              <h1 className="font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight text-slate-800 flex items-center justify-center sm:justify-start gap-1 uppercase">
-                APOTEK <span className="text-blue-600">ASSYIFA FARMA</span>
+              <h1 className="font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight text-slate-800 dark:text-slate-100 flex items-center justify-center sm:justify-start gap-1 uppercase">
+                APOTEK <span className="text-blue-600 dark:text-blue-500">ASSYIFA FARMA</span>
               </h1>
-              <p className="text-[10px] sm:text-xs text-blue-600 font-bold tracking-wide">
+              <p className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 font-bold tracking-wide">
                 Cideres • Professional Health Services
               </p>
             </div>
           </div>
 
-          {/* Quick WA Info callout */}
-          <div className="flex items-center justify-center sm:justify-start w-full sm:w-auto gap-3 bg-blue-50/50 border border-blue-100 p-2.5 sm:p-3 rounded-xl shadow-2xs">
-            <div className="w-8 h-8 rounded bg-blue-100 flex items-center justify-center text-blue-700 shrink-0">
-              <PhoneCall size={14} />
-            </div>
-            <div className="text-left text-xs">
-              <p className="text-slate-400 font-bold uppercase tracking-wider text-[8px] sm:text-[9px]">Layanan Konsultasi Resep</p>
-              <a 
-                href={`https://wa.me/${settings.whatsappNumber}`}
-                target="_blank" 
-                rel="noreferrer" 
-                className="font-bold text-slate-800 hover:text-blue-700 hover:underline transition-all block sm:inline"
-              >
-                +{settings.whatsappNumber}
-              </a>
+          <div className="flex items-center gap-3">
+            {/* Dark mode toggle */}
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-sm cursor-pointer"
+              title="Toggle Tema"
+            >
+              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
+            {/* Quick WA Info callout */}
+            <div className="flex items-center justify-center w-full sm:w-auto gap-3 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 p-2.5 sm:p-3 rounded-xl shadow-2xs">
+              <div className="w-8 h-8 rounded bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-400 shrink-0">
+                <PhoneCall size={14} />
+              </div>
+              <div className="text-left text-xs hidden sm:block">
+                <p className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider text-[8px] sm:text-[9px]">Layanan Konsultasi Resep</p>
+                <a 
+                  href={`https://wa.me/${settings.whatsappNumber}`}
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="font-bold text-slate-800 dark:text-slate-200 hover:text-blue-700 dark:hover:text-blue-400 hover:underline transition-all block"
+                >
+                  +{settings.whatsappNumber}
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -258,7 +284,7 @@ export default function App() {
         
         {/* TAB CONTROLS */}
         <div className="flex justify-center w-full px-1 sm:px-0">
-          <div className="grid grid-cols-3 sm:inline-flex w-full sm:w-auto rounded-xl sm:rounded-2xl p-1 bg-white border border-slate-200/80 shadow-xs max-w-lg sm:max-w-none">
+          <div className="grid grid-cols-3 sm:inline-flex w-full sm:w-auto rounded-xl sm:rounded-2xl p-1 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs max-w-lg sm:max-w-none transition-colors">
             
             {/* Catalog tab button */}
             <button
@@ -270,7 +296,7 @@ export default function App() {
               className={`px-2 sm:px-6 py-3 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 cursor-pointer ${
                 activeTab === 'catalog'
                   ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/20'
-                  : 'text-slate-600 hover:bg-slate-50'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
               <BookOpen size={14} className="shrink-0" />
@@ -287,7 +313,7 @@ export default function App() {
               className={`px-2 sm:px-6 py-3 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 cursor-pointer relative ${
                 activeTab === 'promo'
                   ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/20'
-                  : 'text-slate-600 hover:bg-slate-50'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
               <div className="relative shrink-0 flex items-center justify-center">
@@ -308,8 +334,8 @@ export default function App() {
               }}
               className={`px-2 sm:px-6 py-3 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 cursor-pointer ${
                 activeTab === 'control'
-                  ? 'bg-slate-800 text-white shadow-xs shadow-slate-700/20'
-                  : 'text-slate-600 hover:bg-slate-50'
+                  ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-xs shadow-slate-700/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
               <Settings2 size={14} className="shrink-0" />

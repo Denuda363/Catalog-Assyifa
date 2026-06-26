@@ -87,13 +87,13 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
 
       {/* Customizable Promo greeting/welcome banner */}
       {settings.greetingPromo && (
-        <div className="bg-gradient-to-r from-rose-50 to-orange-50/50 border border-rose-100 rounded-xl p-3 sm:p-4 flex items-start gap-3 shadow-xs animate-fadeIn">
-          <div className="bg-rose-100 text-rose-700 p-2 rounded-lg mt-0.5 shrink-0">
+        <div className="bg-gradient-to-r from-rose-50 to-orange-50/50 dark:from-rose-950/40 dark:to-orange-900/20 border border-rose-100 dark:border-rose-900/50 rounded-xl p-3 sm:p-4 flex items-start gap-3 shadow-xs animate-fadeIn">
+          <div className="bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-400 p-2 rounded-lg mt-0.5 shrink-0">
             <Gift size={16} />
           </div>
           <div>
-            <h4 className="font-extrabold text-rose-900 text-xs uppercase tracking-wider mb-1">PROMOSI AKTIF APOTEK:</h4>
-            <p className="text-xs sm:text-sm text-slate-700 font-medium whitespace-pre-wrap">{settings.greetingPromo}</p>
+            <h4 className="font-extrabold text-rose-900 dark:text-rose-300 text-xs uppercase tracking-wider mb-1">PROMOSI AKTIF APOTEK:</h4>
+            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap">{settings.greetingPromo}</p>
           </div>
         </div>
       )}
@@ -116,20 +116,20 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
                   initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: idx * 0.05 }}
-                className={`bg-white rounded-xl border ${
-                  inactive ? 'border-slate-200 bg-slate-50/50' : 'border-rose-100 hover:border-rose-300'
+                className={`bg-white dark:bg-slate-900 rounded-xl border ${
+                  inactive ? 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50' : 'border-rose-100 dark:border-rose-900 hover:border-rose-300 dark:hover:border-rose-700'
                 } shadow-xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden relative group`}
               >
                 {/* Image Showcase */}
                 {!inactive && linkedMed?.image && (
-                  <div className="h-40 sm:h-44 w-full bg-slate-50 relative overflow-hidden border-b border-slate-100 shrink-0">
+                  <div className="h-40 sm:h-44 w-full bg-slate-50 dark:bg-slate-950 relative overflow-hidden border-b border-slate-100 dark:border-slate-800 shrink-0">
                     <img 
                       src={linkedMed.image} 
                       alt={linkedMed.name} 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
                       referrerPolicy="no-referrer" 
                     />
-                    <div className="absolute top-2 left-2 bg-rose-600/95 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded tracking-wider uppercase shadow-xs">
+                    <div className="absolute top-2 left-2 bg-rose-600/95 dark:bg-rose-700/95 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded tracking-wider uppercase shadow-xs">
                       PROMO PRODUK
                     </div>
                   </div>
@@ -157,21 +157,21 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
                     {(() => {
                       if (isIncoming) {
                         return (
-                          <span className="text-[11px] font-bold flex flex-col items-end leading-none text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-100">
+                          <span className="text-[11px] font-bold flex flex-col items-end leading-none text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded border border-amber-100 dark:border-amber-800/50">
                             <span className="text-[8px] font-extrabold uppercase text-amber-500 tracking-wider mb-0.5">Mulai: {p.validFrom}</span>
                             <span className="text-[8px]">Segera Hadir</span>
                           </span>
                         );
                       } else if (expired) {
                         return (
-                          <span className="text-[11px] font-bold flex flex-col items-end leading-none text-slate-400 bg-slate-100 px-2 py-1 rounded border border-slate-200">
+                          <span className="text-[11px] font-bold flex flex-col items-end leading-none text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded border border-slate-200 dark:border-slate-700">
                             <span className="text-[8px] font-extrabold uppercase tracking-wider mb-0.5">S/d: {p.validUntil}</span>
                             <span className="text-[8px]">Sudah Berakhir</span>
                           </span>
                         );
                       } else {
                         return (
-                          <span className="text-[11px] font-bold flex flex-col items-end leading-none text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
+                          <span className="text-[11px] font-bold flex flex-col items-end leading-none text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded border border-emerald-100 dark:border-emerald-800/50">
                             {p.validFrom && (
                               <span className="text-[8px] font-extrabold uppercase text-emerald-400 tracking-wider mb-0.5">Dari: {p.validFrom}</span>
                             )}
@@ -183,39 +183,39 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
                   </div>
 
                   <div>
-                    <h3 className="font-bold text-slate-800 text-base leading-snug group-hover:text-rose-600 transition-colors uppercase">
+                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base leading-snug group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors uppercase">
                       {p.title}
                     </h3>
-                    <p className="text-xs text-slate-500 leading-relaxed font-normal mt-1.5 whitespace-pre-wrap">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-normal mt-1.5 whitespace-pre-wrap">
                       {p.description}
                     </p>
                   </div>
 
                   {/* Bundling products details */}
                   {p.isBundling && bundledMedicinesList.length > 0 && (
-                    <div className="space-y-2 bg-indigo-50/40 p-3 rounded-xl border border-indigo-100/60 mt-1">
-                      <span className="text-[10px] font-bold text-indigo-850 text-indigo-700 uppercase block tracking-wider">Isi Paket Bundling:</span>
-                      <div className="grid grid-cols-1 gap-1.5 max-h-36 overflow-y-auto">
+                    <div className="space-y-2 bg-indigo-50/40 dark:bg-indigo-900/10 p-3 rounded-xl border border-indigo-100/60 dark:border-indigo-800/30 mt-1">
+                      <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 uppercase block tracking-wider">Isi Paket Bundling:</span>
+                      <div className="grid grid-cols-1 gap-1.5 max-h-36 overflow-y-auto pr-1">
                         {bundledMedicinesList.map((bundled) => (
                           <div 
                             key={bundled.id}
                             onClick={() => onSelectMedicine(bundled)}
-                            className="bg-white p-2 rounded-lg border border-indigo-100/75 flex items-center justify-between cursor-pointer hover:bg-indigo-50 hover:border-indigo-300 transition-all shadow-2xs"
+                            className="bg-white dark:bg-slate-900 p-2 rounded-lg border border-indigo-100/75 dark:border-indigo-800/50 flex items-center justify-between cursor-pointer hover:bg-indigo-50 dark:hover:bg-indigo-900/40 hover:border-indigo-300 dark:hover:border-indigo-600 transition-all shadow-2xs"
                           >
                             <div className="flex items-center gap-2">
                               {bundled.image ? (
                                 <img src={bundled.image} alt={bundled.name} className="w-8 h-8 object-cover rounded" referrerPolicy="no-referrer" />
                               ) : (
-                                <div className="w-8 h-8 rounded bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 font-bold text-[8px] uppercase">
+                                <div className="w-8 h-8 rounded bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 font-bold text-[8px] uppercase">
                                   MED
                                 </div>
                               )}
                               <div className="leading-tight">
-                                <p className="font-extrabold text-[10px] sm:text-[11px] text-indigo-950 line-clamp-1">{bundled.name}</p>
-                                <p className="text-[8px] sm:text-[9px] text-slate-400">{bundled.category}</p>
+                                <p className="font-extrabold text-[10px] sm:text-[11px] text-indigo-950 dark:text-indigo-200 line-clamp-1">{bundled.name}</p>
+                                <p className="text-[8px] sm:text-[9px] text-slate-400 dark:text-slate-500">{bundled.category}</p>
                               </div>
                             </div>
-                            <span className="text-[10px] font-black text-indigo-650 text-indigo-600 shrink-0">{formatRupiah(bundled.priceMedis || bundled.price)}</span>
+                            <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 shrink-0">{formatRupiah(bundled.priceMedis || bundled.price)}</span>
                           </div>
                         ))}
                       </div>
@@ -226,25 +226,25 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
                     <div 
                       id={`promo-link-med-${p.id}`}
                       onClick={() => onSelectMedicine(linkedMed)}
-                      className="p-3 bg-blue-50/50 hover:bg-blue-50 rounded-lg border border-blue-100 flex items-center justify-between cursor-pointer transition-all mt-1"
+                      className="p-3 bg-blue-50/50 dark:bg-blue-900/20 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg border border-blue-100 dark:border-blue-800/50 flex items-center justify-between cursor-pointer transition-all mt-1"
                     >
                       <div className="flex items-center gap-2.5 text-xs">
-                        <span className="w-1 h-8 bg-blue-600 rounded-full shrink-0"></span>
+                        <span className="w-1 h-8 bg-blue-600 dark:bg-blue-500 rounded-full shrink-0"></span>
                         <div>
-                          <p className="font-bold text-blue-900 line-clamp-1">{linkedMed.name}</p>
+                          <p className="font-bold text-blue-900 dark:text-blue-200 line-clamp-1">{linkedMed.name}</p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {linkedMed.isPromo && (linkedMed.pricePromo || linkedMed.promoPrice) ? (
                               <>
-                                <span className="font-extrabold text-rose-600">{formatRupiah(linkedMed.pricePromo || linkedMed.promoPrice || 0)}</span>
-                                <span className="text-[10px] text-slate-400 line-through">{formatRupiah(linkedMed.priceMedis || linkedMed.price)}</span>
+                                <span className="font-extrabold text-rose-600 dark:text-rose-400">{formatRupiah(linkedMed.pricePromo || linkedMed.promoPrice || 0)}</span>
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500 line-through">{formatRupiah(linkedMed.priceMedis || linkedMed.price)}</span>
                               </>
                             ) : (
-                              <span className="font-bold text-slate-700">{formatRupiah(linkedMed.priceMedis || linkedMed.price)}</span>
+                              <span className="font-bold text-slate-700 dark:text-slate-300">{formatRupiah(linkedMed.priceMedis || linkedMed.price)}</span>
                             )}
                           </div>
                         </div>
                       </div>
-                      <span className="text-[10px] font-bold text-blue-700 bg-white shadow-xs px-2 py-1 rounded border border-blue-150 border-blue-100 flex items-center gap-0.5 whitespace-nowrap scroll-mx-0">
+                      <span className="text-[10px] font-bold text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-800 shadow-xs px-2 py-1 rounded border border-blue-100 dark:border-blue-800 flex items-center gap-0.5 whitespace-nowrap scroll-mx-0">
                         Lihat Obat <ChevronRight size={10} />
                       </span>
                     </div>
@@ -252,8 +252,8 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
                 </div>
 
                 {/* Bottom interactive panel */}
-                <div className="px-4 sm:px-5 py-3 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between gap-3 mt-auto">
-                  <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                <div className="px-4 sm:px-5 py-3 bg-slate-50/70 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 mt-auto">
+                  <span className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
                     Assyifa Farma Cideres
                   </span>
                   <div className="flex gap-2 shrink-0">
@@ -275,7 +275,7 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
             <div className="mt-8 text-center">
               <button 
                 onClick={() => setVisibleCount(prev => prev + 12)}
-                className="bg-rose-50 text-rose-700 hover:bg-rose-100 px-6 py-2.5 rounded-full font-bold text-sm border border-rose-100 transition-colors cursor-pointer"
+                className="bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900 px-6 py-2.5 rounded-full font-bold text-sm border border-rose-100 dark:border-rose-900 transition-colors cursor-pointer"
               >
                 Muat Lebih Banyak ({promos.length - visibleCount} tersisa)
               </button>
@@ -283,9 +283,9 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
           )}
         </>
       ) : (
-        <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
-          <Gift size={32} className="text-slate-300 mx-auto mb-2" />
-          <p className="text-slate-400 text-sm font-medium">Brosur promosi sedang dikemas oleh pihak Apoteker.</p>
+        <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+          <Gift size={32} className="text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+          <p className="text-slate-400 dark:text-slate-500 text-sm font-medium">Brosur promosi sedang dikemas oleh pihak Apoteker.</p>
         </div>
       )}
     </div>

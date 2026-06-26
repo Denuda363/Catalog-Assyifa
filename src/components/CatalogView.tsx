@@ -73,25 +73,25 @@ function MedicineCard({ med, idx, getClassificationStyles, setSelectedMedicine }
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: idx * 0.02 }}
       id={`medicine-card-${med.id}`}
-      className="bg-white rounded-2xl border border-slate-200/80 hover:border-blue-300 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col overflow-hidden group cursor-pointer shadow-sm"
+      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col overflow-hidden group cursor-pointer shadow-sm"
       onClick={() => setSelectedMedicine(med)}
     >
       {/* Visual Category Header Band / Image Preview */}
       {med.image ? (
-        <div className="h-28 sm:h-32 w-full bg-slate-50 relative overflow-hidden border-b border-slate-100 shrink-0">
+        <div className="h-28 sm:h-32 w-full bg-slate-50 dark:bg-slate-950 relative overflow-hidden border-b border-slate-100 dark:border-slate-800 shrink-0">
           <img 
             src={med.image} 
             alt={med.name} 
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
             referrerPolicy="no-referrer" 
           />
-          <div className="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-xs text-white text-[9px] font-bold px-2 py-0.5 rounded tracking-wide">
+          <div className="absolute top-2 left-2 bg-slate-900/80 dark:bg-black/80 backdrop-blur-xs text-white text-[9px] font-bold px-2 py-0.5 rounded tracking-wide">
             Foto Tersedia
           </div>
         </div>
       ) : (
-        <div className="h-20 sm:h-24 w-full bg-slate-50 border-b border-slate-100 flex flex-col items-center justify-center text-slate-400 p-2 shrink-0 group-hover:bg-blue-50/50 transition-colors">
-          <Activity size={18} className="text-slate-300 group-hover:text-blue-400 group-hover:animate-pulse transition-colors" />
+        <div className="h-20 sm:h-24 w-full bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-slate-400 p-2 shrink-0 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/20 transition-colors">
+          <Activity size={18} className="text-slate-300 dark:text-slate-600 group-hover:text-blue-400 group-hover:animate-pulse transition-colors" />
           <span className="text-[9px] font-semibold text-slate-400 tracking-wide mt-1.5 select-none">No Image</span>
         </div>
       )}
@@ -107,24 +107,24 @@ function MedicineCard({ med, idx, getClassificationStyles, setSelectedMedicine }
           </div>
 
           {/* Medicine Name */}
-          <h3 className="font-bold text-slate-800 text-sm sm:text-base group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug mb-1.5">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm sm:text-base group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 leading-snug mb-1.5">
             {med.name}
           </h3>
 
           {/* Active Ingredient / Composition */}
-          <p className="text-[10px] sm:text-xs text-slate-500 line-clamp-1 font-medium mb-1.5">
+          <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 line-clamp-1 font-medium mb-1.5">
             {med.activeIngredient || '-'}
           </p>
 
           {/* Indication Snapshot */}
-          <p className="text-[10px] sm:text-xs text-slate-400 font-normal line-clamp-2 leading-snug mb-3">
+          <p className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 font-normal line-clamp-2 leading-snug mb-3">
             {med.indication}
           </p>
 
           {/* Dynamic Satuan selector badge row if multi satuan is available */}
           {med.multiUnits && med.multiUnits.length > 0 && (
-            <div className="mt-2 pb-2 border-t border-slate-100/80 pt-2" onClick={(e) => e.stopPropagation()}>
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Pilih Satuan:</span>
+            <div className="mt-2 pb-2 border-t border-slate-100/80 dark:border-slate-800 pt-2" onClick={(e) => e.stopPropagation()}>
+              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1.5">Pilih Satuan:</span>
               <div className="flex flex-wrap gap-1.5">
                 <button
                   type="button"
@@ -132,7 +132,7 @@ function MedicineCard({ med, idx, getClassificationStyles, setSelectedMedicine }
                   className={`px-2 py-1 rounded text-[10px] font-bold border transition-all cursor-pointer ${
                     selectedUnit === (med.baseUnit || 'Lembar')
                       ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                      : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-600'
                   }`}
                 >
                   {med.baseUnit || 'Lembar'}
@@ -145,7 +145,7 @@ function MedicineCard({ med, idx, getClassificationStyles, setSelectedMedicine }
                     className={`px-2 py-1 rounded text-[10px] font-bold border transition-all cursor-pointer ${
                       selectedUnit === u.name
                         ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                        : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-600'
                     }`}
                   >
                     {u.name}
@@ -158,33 +158,33 @@ function MedicineCard({ med, idx, getClassificationStyles, setSelectedMedicine }
       </div>
 
       {/* Card Lower Deck (Price & Action) */}
-      <div className="bg-slate-50/50 p-3 sm:p-4 border-t border-slate-100 flex items-center justify-between mt-auto group-hover:bg-blue-50/30 transition-colors">
+      <div className="bg-slate-50/50 dark:bg-slate-900/50 p-3 sm:p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between mt-auto group-hover:bg-blue-50/30 dark:group-hover:bg-blue-900/10 transition-colors">
         <div className="flex flex-col">
           {med.isPromo && promoPrice ? (
             <div className="space-y-0.5">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] sm:text-xs text-slate-400 line-through font-semibold">
+                <span className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 line-through font-semibold">
                   {formatRupiah(basePrice)}
                 </span>
-                <span className="bg-rose-100 text-rose-700 text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded select-none">
+                <span className="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 text-[8px] sm:text-[9px] font-black px-1.5 py-0.5 rounded select-none">
                   PROMO
                 </span>
               </div>
-              <div className="text-sm sm:text-base font-black text-rose-600">
+              <div className="text-sm sm:text-base font-black text-rose-600 dark:text-rose-400">
                 {formatRupiah(promoPrice)}
               </div>
             </div>
           ) : (
-            <div className="text-sm sm:text-base font-black text-slate-800">
+            <div className="text-sm sm:text-base font-black text-slate-800 dark:text-slate-100">
               {formatRupiah(basePrice)}
             </div>
           )}
           {med.multiUnits && med.multiUnits.length > 0 && (
-            <span className="text-[9px] font-bold text-slate-400 block mt-0.5">per {selectedUnit}</span>
+            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 block mt-0.5">per {selectedUnit}</span>
           )}
         </div>
 
-        <button className="bg-white border border-slate-200 text-slate-600 group-hover:text-blue-600 group-hover:border-blue-200 shadow-sm text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer">
+        <button className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:border-blue-200 dark:group-hover:border-blue-700 shadow-sm text-[10px] font-bold px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 shrink-0 cursor-pointer">
           Detail <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
         </button>
       </div>
@@ -198,12 +198,7 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
   const [selectedCategory, setSelectedCategory] = useState('Semua');
   const [sortOption, setSortOption] = useState('name-asc');
   const [selectedModalUnit, setSelectedModalUnit] = useState<string>('');
-  const [displayCount, setDisplayCount] = useState<number>(24);
-
-  // Reset display count when filters change
-  useEffect(() => {
-    setDisplayCount(24);
-  }, [debouncedSearchTerm, selectedCategory, sortOption]);
+  const [displayLimit, setDisplayLimit] = useState<number | 'all'>(20);
 
   useEffect(() => {
     if (selectedMedicine) {
@@ -345,18 +340,18 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
       )}
 
       {/* Search & Filter Header Container */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/60 space-y-4 sm:space-y-5">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800 space-y-4 sm:space-y-5 transition-colors">
         <div className="flex flex-col md:flex-row gap-3 sm:gap-4">
           {/* Search bar input with custom id */}
           <div className="relative flex-1 group">
-            <span className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors">
+            <span className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
               <Search size={22} />
             </span>
             <input
               id="catalog-search-input"
               type="text"
               placeholder="Cari nama obat, kandungan aktif, atau khasiat..."
-              className="w-full pl-12 sm:pl-14 pr-12 py-3.5 sm:py-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm sm:text-base transition-all text-slate-800 placeholder-slate-400 shadow-sm"
+              className="w-full pl-12 sm:pl-14 pr-12 py-3.5 sm:py-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm sm:text-base transition-all text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -364,7 +359,7 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
               <button
                 id="clear-search-btn"
                 onClick={() => setSearchTerm('')}
-                className="absolute inset-y-0 right-0 pr-4 sm:pr-5 flex items-center text-slate-400 hover:text-slate-700 cursor-pointer transition-colors"
+                className="absolute inset-y-0 right-0 pr-4 sm:pr-5 flex items-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer transition-colors"
               >
                 <X size={20} />
               </button>
@@ -377,7 +372,7 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
               id="catalog-sort-select"
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value)}
-              className="w-full py-3.5 sm:py-4 px-4 pr-10 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm sm:text-base transition-all font-medium text-slate-700 cursor-pointer appearance-none shadow-sm"
+              className="w-full py-3.5 sm:py-4 px-4 pr-10 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm sm:text-base transition-all font-medium text-slate-700 dark:text-slate-300 cursor-pointer appearance-none shadow-sm"
             >
               <option value="name-asc">Urutkan: Nama (A - Z)</option>
               <option value="name-desc">Urutkan: Nama (Z - A)</option>
@@ -385,18 +380,41 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
               <option value="price-desc">Urutkan: Harga Tertinggi</option>
               <option value="updated-desc">Urutkan: Terakhir Diperbarui</option>
             </select>
-            <span className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 transition-colors">
+            <span className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
+              <ChevronRight size={18} className="rotate-90" />
+            </span>
+          </div>
+
+          {/* Display limit dropdown */}
+          <div className="w-full md:w-40 relative group">
+            <select
+              id="catalog-limit-select"
+              value={displayLimit}
+              onChange={(e) => {
+                const val = e.target.value;
+                setDisplayLimit(val === 'all' ? 'all' : parseInt(val));
+              }}
+              className="w-full py-3.5 sm:py-4 px-4 pr-10 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm sm:text-base transition-all font-medium text-slate-700 dark:text-slate-300 cursor-pointer appearance-none shadow-sm"
+            >
+              <option value={20}>20 produk</option>
+              <option value={30}>30 produk</option>
+              <option value={40}>40 produk</option>
+              <option value={50}>50 produk</option>
+              <option value={100}>100 produk</option>
+              <option value="all">Semua</option>
+            </select>
+            <span className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
               <ChevronRight size={18} className="rotate-90" />
             </span>
           </div>
         </div>
 
         {/* Filter Badges with horizontal scrolling on mobile and wrap on screen md */}
-        <div className="pt-3 sm:pt-4 border-t border-slate-100 flex flex-col gap-3">
-          <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest block">Kategori Obat:</span>
+        <div className="pt-3 sm:pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-3">
+          <span className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block">Kategori Obat:</span>
           
           {/* Scrollable categories wrap */}
-          <div className="flex overflow-x-auto pb-3 pt-1 -mx-5 px-5 sm:mx-0 sm:px-0 sm:flex-wrap gap-2.5 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-none snap-x select-none scroll-smooth">
+          <div className="flex overflow-x-auto pb-3 pt-1 -mx-5 px-5 sm:mx-0 sm:px-0 sm:flex-wrap gap-2.5 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700 scrollbar-none snap-x select-none scroll-smooth">
             {categories.map((cat, idx) => (
               <button
                 id={`cat-filter-btn-${idx}`}
@@ -405,7 +423,7 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
                 className={`px-4 py-2.5 sm:px-5 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all shrink-0 snap-start cursor-pointer border ${
                   selectedCategory === cat
                     ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
-                    : 'bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-slate-200 hover:border-slate-300 shadow-sm'
+                    : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm'
                 }`}
               >
                 {cat}
@@ -430,18 +448,18 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
       </div>
 
       {/* Matches Count Banner */}
-      <div className="flex justify-between items-center text-xs sm:text-sm text-slate-500 px-2">
-        <p>Menampilkan <span className="font-semibold text-slate-800">{filteredMedicines.length}</span> produk terdaftar</p>
+      <div className="flex justify-between items-center text-xs sm:text-sm text-slate-500 dark:text-slate-400 px-2">
+        <p>Menampilkan <span className="font-semibold text-slate-800 dark:text-slate-200">{filteredMedicines.length}</span> produk terdaftar</p>
         {selectedCategory !== 'Semua' && (
-          <p>Kategori: <span className="font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">{selectedCategory}</span></p>
+          <p>Kategori: <span className="font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-800">{selectedCategory}</span></p>
         )}
       </div>
 
       {/* Catalog Grid */}
       {filteredMedicines.length > 0 ? (
         <div className="pb-12">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-4 mb-8">
-            {filteredMedicines.slice(0, displayCount).map((med, idx) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-4 mb-8 h-auto max-h-[80vh] overflow-y-auto overflow-x-hidden p-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+            {filteredMedicines.slice(0, displayLimit === 'all' ? filteredMedicines.length : displayLimit).map((med, idx) => (
               <MedicineCard
                 key={med.id}
                 med={med}
@@ -451,19 +469,6 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
               />
             ))}
           </div>
-          
-          {/* Load More Button */}
-          {displayCount < filteredMedicines.length && (
-            <div className="flex justify-center mt-6 mb-12">
-              <button
-                onClick={() => setDisplayCount(prev => prev + 24)}
-                className="bg-white border-2 border-blue-100 text-blue-600 hover:bg-blue-50 hover:border-blue-200 hover:shadow-md px-8 py-3 rounded-full font-bold transition-all shadow-sm flex items-center gap-2 group cursor-pointer"
-              >
-                Muat Lebih Banyak
-                <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </button>
-            </div>
-          )}
         </div>
       ) : (
         <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
@@ -490,7 +495,7 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 1 }}
               transition={{ type: 'spring', damping: 26, stiffness: 220 }}
-              className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg shadow-2xl overflow-hidden border-t sm:border border-slate-200 z-10 max-h-[92vh] sm:max-h-[85vh] flex flex-col relative"
+              className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg shadow-2xl overflow-hidden border-t sm:border border-slate-200 dark:border-slate-800 z-10 max-h-[92vh] sm:max-h-[85vh] flex flex-col relative"
               id="details-modal"
             >
               {/* Mobile Gesture Handle Indicator */}
@@ -525,30 +530,30 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
               <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
                 {/* Large product image display inside detail modal */}
                 {selectedMedicine.image && (
-                  <div className="w-full h-48 sm:h-56 bg-slate-50 overflow-hidden relative rounded-xl border border-slate-100 shrink-0 mb-2">
+                  <div className="w-full h-48 sm:h-56 bg-slate-50 dark:bg-slate-950 overflow-hidden relative rounded-xl border border-slate-100 dark:border-slate-800 shrink-0 mb-2">
                     <img src={selectedMedicine.image} alt={selectedMedicine.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    <div className="absolute bottom-3 right-3 bg-slate-900/70 text-white backdrop-blur-md text-[10px] px-2.5 py-1 rounded font-bold tracking-wider select-none shadow-sm">
+                    <div className="absolute bottom-3 right-3 bg-slate-900/70 dark:bg-black/70 text-white backdrop-blur-md text-[10px] px-2.5 py-1 rounded font-bold tracking-wider select-none shadow-sm">
                       Foto Asli
                     </div>
                   </div>
                 )}
 
                 {/* Price block */}
-                <div className="p-4 sm:p-5 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col gap-1 shadow-sm">
+                <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col gap-1 shadow-sm">
                   <div>
-                    <span className="text-[11px] sm:text-xs font-bold text-slate-500 block uppercase tracking-wider mb-1.5">Harga ({selectedModalUnit})</span>
+                    <span className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 block uppercase tracking-wider mb-1.5">Harga ({selectedModalUnit})</span>
                     {selectedMedicine.isPromo && selectedMedicine.promoPrice ? (
                       <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
-                        <span className="text-2xl sm:text-3xl font-black text-rose-600">
+                        <span className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400">
                           {formatRupiah(selectedMedicine.promoPrice * modalMultiplier)}
                         </span>
-                        <span className="text-sm sm:text-base text-slate-400 line-through font-semibold">
+                        <span className="text-sm sm:text-base text-slate-400 dark:text-slate-500 line-through font-semibold">
                           {formatRupiah((selectedMedicine.priceMedis || selectedMedicine.price) * modalMultiplier)}
                         </span>
-                        <span className="bg-rose-100 text-rose-700 text-[10px] font-black px-2 py-0.5 rounded uppercase ml-auto">Promo Spesial</span>
+                        <span className="bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 text-[10px] font-black px-2 py-0.5 rounded uppercase ml-auto">Promo Spesial</span>
                       </div>
                     ) : (
-                      <span className="text-2xl sm:text-3xl font-black text-slate-800 mt-0.5 block">
+                      <span className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 mt-0.5 block">
                         {formatRupiah((selectedMedicine.priceMedis || selectedMedicine.price) * modalMultiplier)}
                       </span>
                     )}
@@ -557,8 +562,8 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
 
                 {/* Modal Unit Selector */}
                 {selectedMedicine.multiUnits && selectedMedicine.multiUnits.length > 0 && (
-                  <div className="p-4 sm:p-5 bg-blue-50/50 rounded-2xl border border-blue-100 flex flex-col gap-3">
-                    <span className="text-xs sm:text-sm font-extrabold text-blue-900 uppercase tracking-widest flex items-center gap-2">
+                  <div className="p-4 sm:p-5 bg-blue-50/50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/50 flex flex-col gap-3">
+                    <span className="text-xs sm:text-sm font-extrabold text-blue-900 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
                       <Tag size={16} /> Pilih Satuan Pembelian:
                     </span>
                     <div className="flex flex-wrap gap-2.5 pt-1">
@@ -568,7 +573,7 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
                         className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black border transition-all cursor-pointer ${
                           selectedModalUnit === (selectedMedicine.baseUnit || 'Lembar')
                             ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
-                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 shadow-sm'
+                            : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 shadow-sm'
                         }`}
                       >
                         {selectedMedicine.baseUnit || 'Lembar'}
@@ -581,7 +586,7 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
                           className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black border transition-all cursor-pointer ${
                             selectedModalUnit === u.name
                               ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
-                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 shadow-sm'
+                              : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 shadow-sm'
                           }`}
                         >
                           1 {u.name} <span className="opacity-70 font-semibold ml-1">({u.multiplier} x {selectedMedicine.baseUnit || 'Lembar'})</span>
@@ -594,10 +599,10 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
                 {/* Indication section */}
                 <div className="space-y-2">
                   <h4 className="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <Activity size={14} className="text-blue-600" />
+                    <Activity size={14} className="text-blue-600 dark:text-blue-400" />
                     Indikasi / Khasiat:
                   </h4>
-                  <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-medium bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <p className="text-sm sm:text-base text-slate-700 dark:text-slate-200 leading-relaxed font-medium bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
                     {selectedMedicine.indication}
                   </p>
                 </div>
@@ -605,26 +610,26 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
                 {/* Dose section */}
                 <div className="space-y-2">
                   <h4 className="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <FileText size={14} className="text-blue-600" />
+                    <FileText size={14} className="text-blue-600 dark:text-blue-400" />
                     Dosis & Aturan Pakai:
                   </h4>
-                  <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-medium bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <p className="text-sm sm:text-base text-slate-700 dark:text-slate-200 leading-relaxed font-medium bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
                     {selectedMedicine.dose || 'Hubungi apoteker kami untuk anjuran pemakaian yang tepat.'}
                   </p>
                 </div>
 
                 {/* Notice based on Drugs classification */}
-                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3 shadow-sm">
-                  <Clock className="text-blue-600 shrink-0 mt-0.5" size={16} />
-                  <div className="text-xs sm:text-sm text-blue-900 leading-relaxed">
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/50 flex gap-3 shadow-sm">
+                  <Clock className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" size={16} />
+                  <div className="text-xs sm:text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
                     <p className="font-extrabold mb-1">Panduan BPOM: {getClassificationStyles(selectedMedicine.category).symbol}</p>
-                    <p className="text-slate-600 font-medium">{getClassificationStyles(selectedMedicine.category).description}</p>
+                    <p className="text-slate-600 dark:text-slate-400 font-medium">{getClassificationStyles(selectedMedicine.category).description}</p>
                   </div>
                 </div>
               </div>
 
               {/* Sticky Footer Triggers (Tappable touch size 44px) */}
-              <div className="p-4 sm:p-5 bg-white border-t border-slate-100 flex flex-col sm:flex-row gap-3 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+              <div className="p-4 sm:p-5 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-3 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
                 <button
                   id={`whatsapp-order-${selectedMedicine.id}`}
                   onClick={() => handleWhatsappOrder(selectedMedicine)}
@@ -636,14 +641,14 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
                 <button
                   id="close-overlay-btn"
                   onClick={() => setSelectedMedicine(null)}
-                  className="w-full sm:w-auto py-3.5 px-6 bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 rounded-2xl font-bold text-sm hover:bg-slate-100 transition-all cursor-pointer min-h-[48px] active:scale-[0.98] shadow-sm"
+                  className="w-full sm:w-auto py-3.5 px-6 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-2xl font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer min-h-[48px] active:scale-[0.98] shadow-sm"
                 >
                   Tutup Kembali
                 </button>
               </div>
 
               {/* Informative update date footer bar */}
-              <div className="bg-slate-50 px-5 py-2.5 text-[10px] sm:text-[11px] text-slate-400 flex justify-between items-center select-none shrink-0 border-t border-slate-100 font-medium">
+              <div className="bg-slate-50 dark:bg-slate-950 px-5 py-2.5 text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 flex justify-between items-center select-none shrink-0 border-t border-slate-100 dark:border-slate-800 font-medium">
                 <span>Pelayanan • Assyifa Farma Cideng</span>
                 <span>Update: {formatDate(selectedMedicine.updatedAt)}</span>
               </div>
