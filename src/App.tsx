@@ -81,9 +81,17 @@ export default function App() {
 
     const activeNonBundlePromos = activePromos.filter((p) => !p.isBundling && p.medicineId);
 
+    // Create a Map for O(1) lookup to improve performance with large datasets
+    const promoMap = new Map();
+    activeNonBundlePromos.forEach((p) => {
+      if (p.medicineId) {
+        promoMap.set(p.medicineId, p);
+      }
+    });
+
     const processedMedicines = medicines.map((m) => {
-      // Find an active promo associated with this specific medicine
-      const promoForMed = activeNonBundlePromos.find((p) => p.medicineId === m.id);
+      // Find an active promo associated with this specific medicine O(1)
+      const promoForMed = promoMap.get(m.id);
       if (promoForMed) {
         // Compute calculated promoPrice based on discount percent
         const discount = promoForMed.discountPercent || 0;
