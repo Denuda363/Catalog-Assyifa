@@ -41,7 +41,8 @@ import {
   AlertCircle,
   Phone,
   Hash,
-  MapPin
+  MapPin,
+  Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
@@ -93,11 +94,30 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
   // Control tabs
   const [activeTab, setActiveTab] = useState<'medicines' | 'promos' | 'settings' | 'logs' | 'super'>('medicines');
 
-  // Pagination states
+  // Pagination and Search states
   const [medicinePage, setMedicinePage] = useState(1);
   const [promoPage, setPromoPage] = useState(1);
   const [logPage, setLogPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
+
+  // Search states
+  const [medicineSearchTerm, setMedicineSearchTerm] = useState('');
+
+  // Derived filtered medicines
+  const filteredMedicines = useMemo(() => {
+    if (!medicineSearchTerm.trim()) return medicines;
+    const term = medicineSearchTerm.toLowerCase();
+    return medicines.filter(med => 
+      med.name.toLowerCase().includes(term) ||
+      (med.activeIngredient && med.activeIngredient.toLowerCase().includes(term)) ||
+      (med.category && med.category.toLowerCase().includes(term))
+    );
+  }, [medicines, medicineSearchTerm]);
+
+  // Reset page when search term changes
+  useEffect(() => {
+    setMedicinePage(1);
+  }, [medicineSearchTerm]);
 
   // Form states - Medicines
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
@@ -1694,6 +1714,31 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                     </div>
                   </div>
                 )}
+
+                {/* Medicine Search Bar */}
+                <div className="relative w-full max-w-md">
+                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Search size={16} />
+                  </span>
+                  <input
+                    id="medicine-search-input"
+                    type="text"
+                    placeholder="Cari obat berdasarkan nama, kandungan, atau kategori..."
+                    className="w-full pl-10 pr-10 py-2 rounded-xl border border-slate-200 bg-white outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition-all text-slate-800 shadow-sm"
+                    value={medicineSearchTerm}
+                    onChange={(e) => setMedicineSearchTerm(e.target.value)}
+                  />
+                  {medicineSearchTerm && (
+                    <button
+                      id="clear-medicine-search-btn"
+                      onClick={() => setMedicineSearchTerm('')}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+
                 {/* Desktop Version */}
                 <div className="hidden md:block overflow-x-auto max-h-[500px] overflow-y-auto border border-slate-100 rounded-xl bg-white shadow-xs scrollbar-thin scrollbar-thumb-slate-200">
                   <table id="med-admin-table" className="w-full border-collapse text-left text-xs text-slate-600">
@@ -1706,7 +1751,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {medicines.slice((medicinePage - 1) * ITEMS_PER_PAGE, medicinePage * ITEMS_PER_PAGE).map((med) => (
+                      {filteredMedicines.slice((medicinePage - 1) * ITEMS_PER_PAGE, medicinePage * ITEMS_PER_PAGE).map((med) => (
                         <tr key={med.id} className="hover:bg-slate-50/70 transition-colors">
                           <td className="py-2.5 px-4">
                             <p className="font-bold text-slate-800 text-xs">{med.name}</p>
@@ -1775,7 +1820,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
 
                 {/* Mobile Version Cards */}
                 <div className="block md:hidden space-y-3.5 max-h-[550px] overflow-y-auto pr-1.5 scrollbar-thin scrollbar-thumb-slate-200">
-                  {medicines.slice((medicinePage - 1) * ITEMS_PER_PAGE, medicinePage * ITEMS_PER_PAGE).map((med) => (
+                  {filteredMedicines.slice((medicinePage - 1) * ITEMS_PER_PAGE, medicinePage * ITEMS_PER_PAGE).map((med) => (
                     <div key={med.id} className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-3xs space-y-3">
                       <div className="flex justify-between items-start gap-2">
                         <div className="space-y-0.5">
@@ -1846,7 +1891,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                     </div>
                   ))}
                 </div>
-                {renderPagination(medicinePage, medicines.length, setMedicinePage)}
+                {renderPagination(medicinePage, filteredMedicines.length, setMedicinePage)}
               </div>
             )}
 

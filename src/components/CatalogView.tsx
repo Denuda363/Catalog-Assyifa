@@ -183,12 +183,11 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
   const [selectedCategory, setSelectedCategory] = useState('Semua');
   const [sortOption, setSortOption] = useState('name-asc');
   const [selectedModalUnit, setSelectedModalUnit] = useState<string>('');
-  const [visibleCount, setVisibleCount] = useState(24);
+  const [displayLimit, setDisplayLimit] = useState<number | 'all'>(20);
 
-  // Reset visible count when filters change
-  useEffect(() => {
-    setVisibleCount(24);
-  }, [searchTerm, selectedCategory, sortOption]);
+  // Reset limit to its chosen value or 20 when filters change, no we shouldn't reset the user preference
+  // Just let it be. But wait, if they selected "Semua", it stays "Semua".
+  // Remove the useEffect that resets visibleCount.
 
   useEffect(() => {
     if (selectedMedicine) {
@@ -374,6 +373,29 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
               <ChevronRight size={16} className="rotate-90" />
             </span>
           </div>
+
+          {/* Display limit dropdown */}
+          <div className="w-full md:w-32 relative group">
+            <select
+              id="catalog-limit-select"
+              value={displayLimit}
+              onChange={(e) => {
+                const val = e.target.value;
+                setDisplayLimit(val === 'all' ? 'all' : parseInt(val));
+              }}
+              className="w-full py-3 px-4 pr-10 rounded-xl border border-transparent bg-slate-50 hover:bg-slate-100 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm sm:text-base transition-all font-medium text-slate-700 cursor-pointer appearance-none"
+            >
+              <option value={20}>20 item</option>
+              <option value={30}>30 item</option>
+              <option value={40}>40 item</option>
+              <option value={50}>50 item</option>
+              <option value={100}>100 item</option>
+              <option value="all">Semua</option>
+            </select>
+            <span className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+              <ChevronRight size={16} className="rotate-90" />
+            </span>
+          </div>
         </div>
 
         {/* Filter Badges with horizontal scrolling on mobile and wrap on screen md */}
@@ -424,30 +446,17 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
 
       {/* Catalog Grid */}
       {filteredMedicines.length > 0 ? (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-4">
-            {filteredMedicines.slice(0, visibleCount).map((med, idx) => (
-              <MedicineCard
-                key={med.id}
-                med={med}
-                idx={idx}
-                getClassificationStyles={getClassificationStyles}
-                setSelectedMedicine={setSelectedMedicine}
-              />
-            ))}
-          </div>
-          
-          {visibleCount < filteredMedicines.length && (
-            <div className="mt-8 text-center">
-              <button 
-                onClick={() => setVisibleCount(prev => prev + 24)}
-                className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-6 py-2.5 rounded-full font-bold text-sm border border-indigo-100 transition-colors cursor-pointer"
-              >
-                Muat Lebih Banyak ({filteredMedicines.length - visibleCount} tersisa)
-              </button>
-            </div>
-          )}
-        </>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-4 pb-12">
+          {filteredMedicines.slice(0, displayLimit === 'all' ? filteredMedicines.length : displayLimit).map((med, idx) => (
+            <MedicineCard
+              key={med.id}
+              med={med}
+              idx={idx}
+              getClassificationStyles={getClassificationStyles}
+              setSelectedMedicine={setSelectedMedicine}
+            />
+          ))}
+        </div>
       ) : (
         <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
           <p className="text-slate-400 text-sm font-medium animate-pulse">Tidak ada obat yang cocok dengan kueri filter Anda.</p>
