@@ -40,6 +40,7 @@ export interface Promo {
   validUntil: string; // END DATE
   isBundling?: boolean; // True if this promo is a bundle package
   bundledMedicineIds?: string[]; // Array of bundled medicine IDs
+  bannerImageUrl?: string; // base64 data URL for banner image
 }
 
 export interface Settings {

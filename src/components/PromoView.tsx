@@ -121,17 +121,19 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
                 } shadow-xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden relative group`}
               >
                 {/* Image Showcase */}
-                {!inactive && linkedMed?.image && (
+                {(p.bannerImageUrl || (!inactive && linkedMed?.image)) && (
                   <div className="h-40 sm:h-44 w-full bg-slate-50 dark:bg-slate-950 relative overflow-hidden border-b border-slate-100 dark:border-slate-800 shrink-0">
                     <img 
-                      src={linkedMed.image} 
-                      alt={linkedMed.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                      src={p.bannerImageUrl || linkedMed?.image} 
+                      alt={p.bannerImageUrl ? "Banner Promo" : linkedMed?.name} 
+                      className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${inactive ? 'grayscale opacity-75' : ''}`} 
                       referrerPolicy="no-referrer" 
                     />
-                    <div className="absolute top-2 left-2 bg-rose-600/95 dark:bg-rose-700/95 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded tracking-wider uppercase shadow-xs">
-                      PROMO PRODUK
-                    </div>
+                    {!p.bannerImageUrl && (
+                      <div className="absolute top-2 left-2 bg-rose-600/95 dark:bg-rose-700/95 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded tracking-wider uppercase shadow-xs">
+                        PROMO PRODUK
+                      </div>
+                    )}
                   </div>
                 )}
 

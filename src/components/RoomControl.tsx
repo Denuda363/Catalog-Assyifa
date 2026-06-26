@@ -154,7 +154,8 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     validFrom: '',
     validUntil: '',
     isBundling: false,
-    bundledMedicineIds: [] as string[]
+    bundledMedicineIds: [] as string[],
+    bannerImageUrl: ''
   });
 
   // Settings form states
@@ -407,7 +408,8 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
         validFrom: promoForm.validFrom || undefined,
         validUntil: promoForm.validUntil,
         isBundling: promoForm.isBundling,
-        bundledMedicineIds: promoForm.isBundling ? promoForm.bundledMedicineIds : []
+        bundledMedicineIds: promoForm.isBundling ? promoForm.bundledMedicineIds : [],
+        bannerImageUrl: promoForm.bannerImageUrl || undefined
       };
 
       await savePromo(newPromo);
@@ -436,7 +438,8 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
         validFrom: promoForm.validFrom || undefined,
         validUntil: promoForm.validUntil,
         isBundling: promoForm.isBundling,
-        bundledMedicineIds: promoForm.isBundling ? promoForm.bundledMedicineIds : []
+        bundledMedicineIds: promoForm.isBundling ? promoForm.bundledMedicineIds : [],
+        bannerImageUrl: promoForm.bannerImageUrl || undefined
       };
 
       await savePromo(updatedPromo);
@@ -458,7 +461,8 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
       validFrom: '',
       validUntil: '',
       isBundling: false,
-      bundledMedicineIds: []
+      bundledMedicineIds: [],
+      bannerImageUrl: ''
     });
   };
 
@@ -475,7 +479,8 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
       validFrom: p.validFrom || '',
       validUntil: p.validUntil,
       isBundling: !!p.isBundling,
-      bundledMedicineIds: p.bundledMedicineIds || []
+      bundledMedicineIds: p.bundledMedicineIds || [],
+      bannerImageUrl: p.bannerImageUrl || ''
     });
   };
 
@@ -2154,6 +2159,38 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                           placeholder="Tulis ketentuan rinci, diskon berlaku setiap pembelian kaplet..."
                           className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         />
+                      </div>
+                      
+                      <div className="space-y-1.5 p-3 rounded-lg border border-slate-200 bg-slate-50 relative group flex flex-col gap-2">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase">Gambar Banner (Opsional):</label>
+                        <input
+                          id="promo-banner-input"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                setPromoForm({...promoForm, bannerImageUrl: event.target?.result as string});
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
+                        {promoForm.bannerImageUrl && (
+                          <div className="mt-2 rounded-xl overflow-hidden shadow-sm relative">
+                            <img src={promoForm.bannerImageUrl} alt="Banner Preview" className="w-full h-32 object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setPromoForm({...promoForm, bannerImageUrl: ''})}
+                              className="absolute top-2 right-2 bg-slate-900/60 text-white rounded-full p-1.5 hover:bg-slate-900/80 transition"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
