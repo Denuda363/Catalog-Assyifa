@@ -222,57 +222,61 @@ export default function App() {
       </div>
 
       {/* Hero Brand Section */}
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 py-4 sm:py-6 px-4 sm:px-6 shrink-0 shadow-sm transition-colors">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-6">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-3.5 text-center sm:text-left">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 py-3 sm:py-6 px-4 sm:px-6 shrink-0 shadow-sm transition-colors z-10 relative">
+        <div className="max-w-6xl mx-auto flex flex-row justify-between items-center gap-3 sm:gap-6">
+            <div className="flex flex-row items-center gap-2.5 sm:gap-4 text-left">
             {/* Visual medical icon/avatar */}
             {settings.pharmacyLogo ? (
               <img 
                 src={settings.pharmacyLogo} 
                 alt="Logo Apotek" 
-                className="w-12 h-12 rounded-xl object-contain border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-0.5 shrink-0 shadow-xs" 
+                className="w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl object-cover shadow-md border-2 border-white dark:border-slate-800 shrink-0" 
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <div className="w-11 h-11 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xl shrink-0 shadow-sm shadow-blue-600/10">
-                A
+              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl sm:rounded-2xl flex items-center justify-center text-white font-black text-xl sm:text-2xl shrink-0 shadow-lg shadow-blue-600/30 border-2 border-white dark:border-slate-800 relative overflow-hidden">
+                <span className="relative z-10">A</span>
+                <div className="absolute -bottom-2 -right-2 w-6 h-6 sm:w-8 sm:h-8 bg-white/20 rounded-full blur-sm"></div>
+                <div className="absolute -top-1 -left-1 w-4 h-4 sm:w-6 sm:h-6 bg-white/20 rounded-full blur-sm"></div>
               </div>
             )}
-            <div className="space-y-0.5">
-              <h1 className="font-extrabold text-lg sm:text-xl md:text-2xl tracking-tight text-slate-800 dark:text-slate-100 flex items-center justify-center sm:justify-start gap-1 uppercase">
-                APOTEK <span className="text-blue-600 dark:text-blue-500">ASSYIFA FARMA</span>
+            <div className="space-y-0.5 flex flex-col justify-center">
+              <h1 className="font-black text-xl sm:text-3xl md:text-4xl tracking-tight flex flex-col sm:flex-row items-start sm:items-baseline justify-center sm:justify-start sm:gap-2 leading-none uppercase">
+                <span className="font-medium tracking-widest text-slate-400 dark:text-slate-500 text-[8px] sm:text-sm md:text-base mb-0.5 sm:mb-0">APOTEK</span>
+                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-500 text-transparent bg-clip-text drop-shadow-sm pb-0.5 sm:pb-1">
+                  ASSYIFA FARMA
+                </span>
               </h1>
-              <p className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 font-bold tracking-wide">
-                Cideres • Professional Health Services
-              </p>
+              <div className="flex items-center justify-start gap-2">
+                <span className="w-4 h-0.5 bg-blue-500 rounded-full hidden sm:block"></span>
+                <p className="text-[9px] sm:text-xs text-slate-500 dark:text-slate-400 font-semibold tracking-widest uppercase truncate max-w-[200px] sm:max-w-none">
+                  Cideres <span className="text-blue-500 mx-1">•</span> <span className="hidden sm:inline">Professional Health Services</span><span className="sm:hidden">Health Services</span>
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Dark mode toggle */}
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-sm cursor-pointer"
+              className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-sm cursor-pointer"
               title="Toggle Tema"
             >
-              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+              {isDarkMode ? <Sun size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Moon size={16} className="sm:w-[18px] sm:h-[18px]" />}
             </button>
 
             {/* Quick WA Info callout */}
-            <div className="flex items-center justify-center w-full sm:w-auto gap-3 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 p-2.5 sm:p-3 rounded-xl shadow-2xs">
-              <div className="w-8 h-8 rounded bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-400 shrink-0">
+            <div className="flex items-center justify-center gap-2 sm:gap-3 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 p-1.5 sm:p-3 rounded-lg sm:rounded-xl shadow-2xs cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/40 transition-colors"
+                 onClick={() => window.open(`https://wa.me/${settings.whatsappNumber}`, '_blank')}>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-400 shrink-0">
                 <PhoneCall size={14} />
               </div>
               <div className="text-left text-xs hidden sm:block">
                 <p className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider text-[8px] sm:text-[9px]">Layanan Konsultasi Resep</p>
-                <a 
-                  href={`https://wa.me/${settings.whatsappNumber}`}
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="font-bold text-slate-800 dark:text-slate-200 hover:text-blue-700 dark:hover:text-blue-400 hover:underline transition-all block"
-                >
+                <div className="font-bold text-slate-800 dark:text-slate-200 hover:text-blue-700 dark:hover:text-blue-400 transition-colors block">
                   +{settings.whatsappNumber}
-                </a>
+                </div>
               </div>
             </div>
           </div>
@@ -280,11 +284,11 @@ export default function App() {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+      <main className="max-w-6xl mx-auto px-4 py-6 sm:py-8 space-y-6 pb-28 sm:pb-8">
         
         {/* TAB CONTROLS */}
-        <div className="flex justify-center w-full px-1 sm:px-0">
-          <div className="grid grid-cols-3 sm:inline-flex w-full sm:w-auto rounded-xl sm:rounded-2xl p-1 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs max-w-lg sm:max-w-none transition-colors">
+        <div className="fixed bottom-4 left-4 right-4 z-50 sm:relative sm:bottom-0 sm:left-auto sm:right-auto sm:flex sm:justify-center w-auto sm:w-full px-0">
+          <div className="flex w-full sm:w-auto p-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-xl shadow-slate-200/30 dark:shadow-slate-900/40 relative max-w-sm mx-auto sm:max-w-none">
             
             {/* Catalog tab button */}
             <button
@@ -293,14 +297,21 @@ export default function App() {
                 setActiveTab('catalog');
                 setSelectedMedicine(null);
               }}
-              className={`px-2 sm:px-6 py-3 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 cursor-pointer ${
+              className={`relative flex-1 sm:flex-none px-3 sm:px-8 py-3 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
                 activeTab === 'catalog'
-                  ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  ? 'text-white'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
-              <BookOpen size={14} className="shrink-0" />
-              <span className="tracking-wide">KATALOG OBAT</span>
+              {activeTab === 'catalog' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-md -z-10"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <BookOpen size={16} className="shrink-0" />
+              <span className="tracking-wide">Katalog</span>
             </button>
 
             {/* Promo tab button */}
@@ -310,19 +321,26 @@ export default function App() {
                 setActiveTab('promo');
                 setSelectedMedicine(null);
               }}
-              className={`px-2 sm:px-6 py-3 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 cursor-pointer relative ${
+              className={`relative flex-1 sm:flex-none px-3 sm:px-8 py-3 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
                 activeTab === 'promo'
-                  ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  ? 'text-white'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
+              {activeTab === 'promo' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute inset-0 bg-gradient-to-r from-rose-500 to-orange-500 rounded-xl shadow-md -z-10"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
               <div className="relative shrink-0 flex items-center justify-center">
-                <Gift size={14} />
-                {clientPromos.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-orange-500 animate-ping"></span>
+                <Gift size={16} />
+                {clientPromos.length > 0 && activeTab !== 'promo' && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-500 ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
                 )}
               </div>
-              <span className="tracking-wide">DAFTAR PROMO</span>
+              <span className="tracking-wide">Promo</span>
             </button>
 
             {/* Control tab button */}
@@ -332,14 +350,21 @@ export default function App() {
                 setActiveTab('control');
                 setSelectedMedicine(null);
               }}
-              className={`px-2 sm:px-6 py-3 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 cursor-pointer ${
+              className={`relative flex-1 sm:flex-none px-3 sm:px-8 py-3 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
                 activeTab === 'control'
-                  ? 'bg-slate-800 dark:bg-slate-700 text-white shadow-xs shadow-slate-700/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  ? 'text-white'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
-              <Settings2 size={14} className="shrink-0" />
-              <span className="tracking-wide">ROOM CONTROL</span>
+              {activeTab === 'control' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute inset-0 bg-gradient-to-r from-slate-700 to-slate-900 dark:from-slate-600 dark:to-slate-800 rounded-xl shadow-md -z-10"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <Settings2 size={16} className="shrink-0" />
+              <span className="tracking-wide">Admin</span>
             </button>
           </div>
         </div>
