@@ -534,12 +534,12 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
           )}
         </div>
       ) : (
-        <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
-          <p className="text-slate-400 text-sm font-medium animate-pulse">Tidak ada obat yang cocok dengan kueri filter Anda.</p>
+        <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+          <p className="text-slate-400 dark:text-slate-500 text-sm font-medium animate-pulse">Tidak ada obat yang cocok dengan kueri filter Anda.</p>
           <button
             id="reset-search-btn"
             onClick={resetFilters}
-            className="mt-3 px-4 py-2 bg-blue-50 text-blue-700 font-bold rounded-lg text-xs hover:bg-blue-100 transition-all border border-blue-200/50"
+            className="mt-3 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-bold rounded-lg text-xs hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all border border-blue-200/50 dark:border-blue-800/50 cursor-pointer"
           >
             Bersihkan Hasil
           </button>
