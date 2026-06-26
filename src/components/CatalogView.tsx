@@ -199,6 +199,12 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
   const [sortOption, setSortOption] = useState('name-asc');
   const [selectedModalUnit, setSelectedModalUnit] = useState<string>('');
   const [displayLimit, setDisplayLimit] = useState<number | 'all'>(20);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset to page 1 when filters or limits change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, selectedCategory, sortOption, displayLimit]);
 
   useEffect(() => {
     if (selectedMedicine) {
@@ -304,10 +310,16 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
     return result;
   }, [medicines, debouncedSearchTerm, selectedCategory, sortOption]);
 
+  const totalPages = displayLimit === 'all' ? 1 : Math.ceil(filteredMedicines.length / displayLimit);
+  const currentMedicines = displayLimit === 'all'
+    ? filteredMedicines
+    : filteredMedicines.slice((currentPage - 1) * displayLimit, currentPage * displayLimit);
+
   const resetFilters = () => {
     setSearchTerm('');
     setSelectedCategory('Semua');
     setSortOption('name-asc');
+    setCurrentPage(1);
   };
 
   const handleWhatsappOrder = (med: Medicine) => {
@@ -459,7 +471,7 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
       {filteredMedicines.length > 0 ? (
         <div className="pb-12">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-4 mb-8 h-auto max-h-[80vh] overflow-y-auto overflow-x-hidden p-1 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
-            {filteredMedicines.slice(0, displayLimit === 'all' ? filteredMedicines.length : displayLimit).map((med, idx) => (
+            {currentMedicines.map((med, idx) => (
               <MedicineCard
                 key={med.id}
                 med={med}
@@ -469,6 +481,57 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
               />
             ))}
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-wrap justify-center items-center gap-2 mt-8">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 rounded-lg text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Prev
+              </button>
+              
+              {/* Page numbers */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                // Show first, last, current, and surrounding pages
+                if (
+                  page === 1 ||
+                  page === totalPages ||
+                  (page >= currentPage - 1 && page <= currentPage + 1)
+                ) {
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-10 h-10 rounded-lg text-sm font-bold transition-all ${
+                        currentPage === page
+                          ? 'bg-blue-600 text-white shadow-md'
+                          : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                } else if (
+                  page === currentPage - 2 ||
+                  page === currentPage + 2
+                ) {
+                  return <span key={page} className="px-1 text-slate-400 dark:text-slate-500">...</span>;
+                }
+                return null;
+              })}
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 rounded-lg text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
