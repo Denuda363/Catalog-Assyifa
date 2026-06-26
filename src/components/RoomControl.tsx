@@ -155,6 +155,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     validUntil: '',
     isBundling: false,
     bundledMedicineIds: [] as string[],
+    bundledItems: [] as { medicineId: string; isFree?: boolean; discountPercent?: number; customPrice?: number }[],
     bannerImageUrl: ''
   });
 
@@ -409,6 +410,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
         validUntil: promoForm.validUntil,
         isBundling: promoForm.isBundling,
         bundledMedicineIds: promoForm.isBundling ? promoForm.bundledMedicineIds : [],
+        bundledItems: promoForm.isBundling ? promoForm.bundledItems : undefined,
         bannerImageUrl: promoForm.bannerImageUrl || undefined
       };
 
@@ -439,6 +441,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
         validUntil: promoForm.validUntil,
         isBundling: promoForm.isBundling,
         bundledMedicineIds: promoForm.isBundling ? promoForm.bundledMedicineIds : [],
+        bundledItems: promoForm.isBundling ? promoForm.bundledItems : undefined,
         bannerImageUrl: promoForm.bannerImageUrl || undefined
       };
 
@@ -462,6 +465,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
       validUntil: '',
       isBundling: false,
       bundledMedicineIds: [],
+      bundledItems: [],
       bannerImageUrl: ''
     });
   };
@@ -480,6 +484,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
       validUntil: p.validUntil,
       isBundling: !!p.isBundling,
       bundledMedicineIds: p.bundledMedicineIds || [],
+      bundledItems: p.bundledItems || [],
       bannerImageUrl: p.bannerImageUrl || ''
     });
   };
@@ -2112,31 +2117,84 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                                 }
                                 return filteredMeds.map((m) => {
                                   const isChecked = promoForm.bundledMedicineIds.includes(m.id);
+                                  const bundledItem = promoForm.bundledItems.find(item => item.medicineId === m.id) || { medicineId: m.id };
+
                                   return (
-                                    <label key={m.id} className="text-xs text-slate-700 flex items-start gap-1.5 pt-1.5 pb-0.5 cursor-pointer hover:bg-slate-50 select-none">
-                                      <input
-                                        type="checkbox"
-                                        checked={isChecked}
-                                        onChange={() => {
-                                          if (isChecked) {
-                                            setPromoForm({
-                                              ...promoForm,
-                                              bundledMedicineIds: promoForm.bundledMedicineIds.filter(id => id !== m.id)
-                                            });
-                                          } else {
-                                            setPromoForm({
-                                              ...promoForm,
-                                              bundledMedicineIds: [...promoForm.bundledMedicineIds, m.id]
-                                            });
-                                          }
-                                        }}
-                                        className="rounded text-indigo-600 cursor-pointer border-slate-300 focus:ring-0 mt-0.5"
-                                      />
-                                      <div className="leading-tight">
-                                        <p className="font-semibold text-[11px]">{m.name}</p>
-                                        <p className="text-[9px] text-slate-400">{m.category} • {formatRupiah(m.priceMedis || m.price)}</p>
-                                      </div>
-                                    </label>
+                                    <div key={m.id} className="pt-1.5 pb-1.5 border-b border-slate-50 last:border-0 hover:bg-slate-50">
+                                      <label className="text-xs text-slate-700 flex items-start gap-1.5 cursor-pointer select-none">
+                                        <input
+                                          type="checkbox"
+                                          checked={isChecked}
+                                          onChange={() => {
+                                            if (isChecked) {
+                                              setPromoForm({
+                                                ...promoForm,
+                                                bundledMedicineIds: promoForm.bundledMedicineIds.filter(id => id !== m.id),
+                                                bundledItems: promoForm.bundledItems.filter(item => item.medicineId !== m.id)
+                                              });
+                                            } else {
+                                              setPromoForm({
+                                                ...promoForm,
+                                                bundledMedicineIds: [...promoForm.bundledMedicineIds, m.id],
+                                                bundledItems: [...promoForm.bundledItems, { medicineId: m.id }]
+                                              });
+                                            }
+                                          }}
+                                          className="rounded text-indigo-600 cursor-pointer border-slate-300 focus:ring-0 mt-0.5"
+                                        />
+                                        <div className="leading-tight">
+                                          <p className="font-semibold text-[11px]">{m.name}</p>
+                                          <p className="text-[9px] text-slate-400">{m.category} • Harga Normal: {formatRupiah(m.priceMedis || m.price)}</p>
+                                        </div>
+                                      </label>
+                                      {isChecked && (
+                                        <div className="ml-5 mt-1.5 pl-2 border-l-2 border-indigo-100 space-y-2">
+                                          <label className="flex items-center gap-1.5 text-[10px] text-slate-600 cursor-pointer">
+                                            <input 
+                                              type="checkbox" 
+                                              checked={bundledItem.isFree || false}
+                                              onChange={(e) => {
+                                                const newItems = promoForm.bundledItems.map(item => 
+                                                  item.medicineId === m.id ? { ...item, isFree: e.target.checked, customPrice: undefined, discountPercent: undefined } : item
+                                                );
+                                                setPromoForm({...promoForm, bundledItems: newItems});
+                                              }}
+                                              className="rounded text-indigo-500 cursor-pointer border-slate-300 focus:ring-0 w-3 h-3"
+                                            />
+                                            Gratis / Free
+                                          </label>
+                                          {!bundledItem.isFree && (
+                                            <div className="flex gap-2 items-center">
+                                              <input
+                                                type="number"
+                                                placeholder="Harga Custom"
+                                                value={bundledItem.customPrice || ''}
+                                                onChange={(e) => {
+                                                  const newItems = promoForm.bundledItems.map(item => 
+                                                    item.medicineId === m.id ? { ...item, customPrice: Number(e.target.value) || undefined, discountPercent: undefined } : item
+                                                  );
+                                                  setPromoForm({...promoForm, bundledItems: newItems});
+                                                }}
+                                                className="w-24 px-2 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-indigo-500 outline-none"
+                                              />
+                                              <span className="text-[10px] text-slate-400">Atau</span>
+                                              <input
+                                                type="number"
+                                                placeholder="Diskon %"
+                                                value={bundledItem.discountPercent || ''}
+                                                onChange={(e) => {
+                                                  const newItems = promoForm.bundledItems.map(item => 
+                                                    item.medicineId === m.id ? { ...item, discountPercent: Number(e.target.value) || undefined, customPrice: undefined } : item
+                                                  );
+                                                  setPromoForm({...promoForm, bundledItems: newItems});
+                                                }}
+                                                className="w-20 px-2 py-1 text-[10px] border border-slate-200 rounded focus:ring-1 focus:ring-indigo-500 outline-none"
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
                                   );
                                 });
                               })()}

@@ -196,11 +196,30 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
                   {/* Bundling products details */}
                   {p.isBundling && bundledMedicinesList.length > 0 && (() => {
                     const totalOriginal = bundledMedicinesList.reduce((acc, m) => acc + (m.priceMedis || m.price), 0);
-                    const applyBundleDiscount = p.discountPercent 
-                      ? totalOriginal * (1 - p.discountPercent / 100) 
-                      : bundledMedicinesList.reduce((acc, m) => {
-                          return acc + (m.isPromo && (m.pricePromo || m.promoPrice) ? (m.pricePromo || m.promoPrice || 0) : (m.priceMedis || m.price));
-                        }, 0);
+                    
+                    const calculateItemPromo = (m: Medicine) => {
+                      let itemOriginal = m.priceMedis || m.price;
+                      let itemPromo = m.isPromo && (m.pricePromo || m.promoPrice) 
+                               ? (m.pricePromo || m.promoPrice || itemOriginal) 
+                               : itemOriginal;
+
+                      const bundledItemOverrides = p.bundledItems?.find(item => item.medicineId === m.id);
+                      if (bundledItemOverrides) {
+                        if (bundledItemOverrides.isFree) {
+                          itemPromo = 0;
+                        } else if (bundledItemOverrides.customPrice !== undefined) {
+                          itemPromo = bundledItemOverrides.customPrice;
+                        } else if (bundledItemOverrides.discountPercent !== undefined) {
+                          itemPromo = itemOriginal * (1 - bundledItemOverrides.discountPercent / 100);
+                        }
+                      } else if (p.discountPercent) {
+                         itemPromo = itemOriginal * (1 - p.discountPercent / 100);
+                      }
+                      
+                      return itemPromo;
+                    };
+                    
+                    const applyBundleDiscount = bundledMedicinesList.reduce((acc, m) => acc + calculateItemPromo(m), 0);
 
                     return (
                       <div className="space-y-2 bg-indigo-50/40 dark:bg-indigo-900/10 p-3 rounded-xl border border-indigo-100/60 dark:border-indigo-800/30 mt-1">
@@ -208,13 +227,7 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
                         <div className="grid grid-cols-1 gap-1.5 max-h-36 overflow-y-auto pr-1">
                           {bundledMedicinesList.map((bundled) => {
                             let itemOriginal = bundled.priceMedis || bundled.price;
-                            let itemPromo = bundled.isPromo && (bundled.pricePromo || bundled.promoPrice) 
-                               ? (bundled.pricePromo || bundled.promoPrice || itemOriginal) 
-                               : itemOriginal;
-                            
-                            if (p.discountPercent) {
-                               itemPromo = itemOriginal * (1 - p.discountPercent / 100);
-                            }
+                            let itemPromo = calculateItemPromo(bundled);
                             
                             const hasDiscount = itemPromo < itemOriginal;
                             return (
@@ -239,11 +252,11 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
                                 <div className="flex flex-col items-end shrink-0">
                                   {hasDiscount ? (
                                     <>
-                                      <span className="text-[10px] font-black text-rose-600 dark:text-rose-400">{formatRupiah(itemPromo)}</span>
+                                      <span className="text-[10px] font-black text-rose-600 dark:text-rose-400">{itemPromo === 0 ? 'GRATIS' : formatRupiah(itemPromo)}</span>
                                       <span className="text-[8px] text-slate-400 dark:text-slate-500 line-through">{formatRupiah(itemOriginal)}</span>
                                     </>
                                   ) : (
-                                    <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400">{formatRupiah(itemOriginal)}</span>
+                                    <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400">{itemOriginal === 0 ? 'GRATIS' : formatRupiah(itemOriginal)}</span>
                                   )}
                                 </div>
                               </div>
