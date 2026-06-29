@@ -138,6 +138,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     isPromo: false,
     promoPrice: 0,
     baseUnit: 'Lembar',
+    defaultUnit: '',
     multiUnits: [] as { name: string; multiplier: number }[]
   });
 
@@ -306,6 +307,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
         promoPrice: promoValue,
         updatedAt: new Date().toISOString(),
         baseUnit: medicineForm.baseUnit || 'Lembar',
+        defaultUnit: medicineForm.defaultUnit || undefined,
         multiUnits: medicineForm.multiUnits.length > 0 ? medicineForm.multiUnits : undefined
       };
 
@@ -331,6 +333,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
         promoPrice: promoValue,
         updatedAt: new Date().toISOString(),
         baseUnit: medicineForm.baseUnit || 'Lembar',
+        defaultUnit: medicineForm.defaultUnit || undefined,
         multiUnits: medicineForm.multiUnits.length > 0 ? medicineForm.multiUnits : undefined
       };
 
@@ -360,6 +363,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
       isPromo: false,
       promoPrice: 0,
       baseUnit: 'Lembar',
+      defaultUnit: '',
       multiUnits: []
     });
   };
@@ -383,6 +387,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
       isPromo: med.isPromo,
       promoPrice: med.promoPrice || med.pricePromo || 0,
       baseUnit: med.baseUnit || 'Lembar',
+      defaultUnit: med.defaultUnit || '',
       multiUnits: med.multiUnits || []
     });
   };
@@ -1603,17 +1608,34 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                          <div className="space-y-1 sm:col-span-1">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase">Satuan Utama (Dasar) *:</label>
-                            <input
-                              type="text"
-                              required
-                              value={medicineForm.baseUnit || 'Lembar'}
-                              onChange={(e) => setMedicineForm({...medicineForm, baseUnit: e.target.value})}
-                              placeholder="Misal: Lembar, Strip, Tablet, Botol"
-                              className="w-full px-2.5 py-1.5 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-[11px] focus:ring-1 focus:ring-indigo-500 font-bold"
-                            />
-                            <span className="text-[9px] text-slate-400 block">Unit terkecil/satuan eceran awal.</span>
+                          <div className="space-y-1 sm:col-span-1 flex flex-col gap-3">
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Satuan Utama (Dasar) *:</label>
+                              <input
+                                type="text"
+                                required
+                                value={medicineForm.baseUnit || 'Lembar'}
+                                onChange={(e) => setMedicineForm({...medicineForm, baseUnit: e.target.value})}
+                                placeholder="Misal: Lembar, Strip, Tablet, Botol"
+                                className="w-full px-2.5 py-1.5 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-[11px] focus:ring-1 focus:ring-indigo-500 font-bold"
+                              />
+                              <span className="text-[9px] text-slate-400 block mt-1">Unit terkecil/satuan eceran awal.</span>
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-500 uppercase">Default Satuan Tampil:</label>
+                              <select
+                                value={medicineForm.defaultUnit || ''}
+                                onChange={(e) => setMedicineForm({...medicineForm, defaultUnit: e.target.value})}
+                                className="w-full px-2.5 py-1.5 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-[11px] focus:ring-1 focus:ring-indigo-500 font-bold"
+                              >
+                                <option value="">{medicineForm.baseUnit || 'Lembar'} (Satuan Dasar)</option>
+                                {medicineForm.multiUnits?.map((u, i) => (
+                                  <option key={i} value={u.name}>{u.name}</option>
+                                ))}
+                              </select>
+                              <span className="text-[9px] text-slate-400 block mt-1">Satuan yang tampil paling depan.</span>
+                            </div>
                           </div>
 
                           <div className="sm:col-span-2 space-y-2">
@@ -1671,9 +1693,75 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                                         <X size={12} />
                                       </button>
                                     </div>
-                                    <div className="px-2 py-1 bg-emerald-50 text-emerald-700 text-[9px] rounded-md border border-emerald-100 flex justify-between items-center font-medium">
-                                      <span>Konversi Harga Medis:</span>
-                                      <span className="font-bold">{formatRupiah((medicineForm.priceMedis || medicineForm.price || 0) * (u.multiplier || 1))} / {u.name || 'Satuan'}</span>
+                                    <div className="flex flex-col gap-2 px-1 mt-0.5">
+                                      <div className="flex justify-between items-center text-[9px] text-slate-500 font-medium bg-emerald-50 text-emerald-700 px-2 py-1 rounded-md border border-emerald-100">
+                                        <span>Konversi Medis (Otomatis):</span>
+                                        <span className="font-bold">{formatRupiah((medicineForm.priceMedis || medicineForm.price || 0) * (u.multiplier || 1))} / {u.name || 'Satuan'}</span>
+                                      </div>
+                                      
+                                      <div className="text-[10px] text-slate-600 font-semibold mb-[-4px]">Atau ketik harga manual untuk:</div>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div className="flex flex-col gap-1">
+                                          <label className="text-[9px] text-slate-500">Medis</label>
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            placeholder="Harga Medis..."
+                                            value={u.customPriceMedis || u.customPrice || ''}
+                                            onChange={(e) => {
+                                              const updatedUnits = [...medicineForm.multiUnits];
+                                              updatedUnits[oIdx].customPriceMedis = e.target.value ? Number(e.target.value) : undefined;
+                                              setMedicineForm({...medicineForm, multiUnits: updatedUnits});
+                                            }}
+                                            className="w-full px-2 py-1 bg-white border border-slate-300 text-slate-800 rounded outline-none text-[10px] focus:ring-1 focus:ring-indigo-500 font-bold"
+                                          />
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                          <label className="text-[9px] text-slate-500">MB</label>
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            placeholder="Harga MB..."
+                                            value={u.customPriceMb || ''}
+                                            onChange={(e) => {
+                                              const updatedUnits = [...medicineForm.multiUnits];
+                                              updatedUnits[oIdx].customPriceMb = e.target.value ? Number(e.target.value) : undefined;
+                                              setMedicineForm({...medicineForm, multiUnits: updatedUnits});
+                                            }}
+                                            className="w-full px-2 py-1 bg-white border border-slate-300 text-slate-800 rounded outline-none text-[10px] focus:ring-1 focus:ring-indigo-500 font-bold"
+                                          />
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                          <label className="text-[9px] text-slate-500">Khusus</label>
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            placeholder="Harga Khusus..."
+                                            value={u.customPriceKhusus || ''}
+                                            onChange={(e) => {
+                                              const updatedUnits = [...medicineForm.multiUnits];
+                                              updatedUnits[oIdx].customPriceKhusus = e.target.value ? Number(e.target.value) : undefined;
+                                              setMedicineForm({...medicineForm, multiUnits: updatedUnits});
+                                            }}
+                                            className="w-full px-2 py-1 bg-white border border-slate-300 text-slate-800 rounded outline-none text-[10px] focus:ring-1 focus:ring-indigo-500 font-bold"
+                                          />
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                          <label className="text-[9px] text-slate-500">HK / OTC</label>
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            placeholder="Harga HK..."
+                                            value={u.customPriceHkOtc || ''}
+                                            onChange={(e) => {
+                                              const updatedUnits = [...medicineForm.multiUnits];
+                                              updatedUnits[oIdx].customPriceHkOtc = e.target.value ? Number(e.target.value) : undefined;
+                                              setMedicineForm({...medicineForm, multiUnits: updatedUnits});
+                                            }}
+                                            className="w-full px-2 py-1 bg-white border border-slate-300 text-slate-800 rounded outline-none text-[10px] focus:ring-1 focus:ring-indigo-500 font-bold"
+                                          />
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
                                 ))}
@@ -1770,7 +1858,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                             <div className="flex flex-wrap gap-1 mt-1 text-[9px]">
                               <span className="bg-slate-100 text-slate-600 px-1 rounded font-medium">Satuan Utama: {med.baseUnit || 'Lembar'}</span>
                               {med.multiUnits && med.multiUnits.map((u, ui) => (
-                                <span key={ui} className="bg-indigo-50 text-indigo-700 px-1 rounded font-bold">1 {u.name} = {u.multiplier} {med.baseUnit || 'Lembar'}</span>
+                                <span key={ui} className="bg-indigo-50 text-indigo-700 px-1 rounded font-bold">1 {u.name} = {u.multiplier} {med.baseUnit || 'Lembar'} {(u.customPriceMedis || u.customPrice || u.customPriceMb || u.customPriceKhusus || u.customPriceHkOtc) ? `(Manual)` : ''}</span>
                               ))}
                             </div>
                           </td>
@@ -1840,7 +1928,7 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                           <div className="flex flex-wrap gap-1 mt-1 text-[8px] sm:text-[9px]">
                             <span className="bg-slate-100 text-slate-600 px-1 rounded font-medium">Satuan Utama: {med.baseUnit || 'Lembar'}</span>
                             {med.multiUnits && med.multiUnits.map((u, ui) => (
-                              <span key={ui} className="bg-indigo-50 text-indigo-700 px-1 rounded font-bold">1 {u.name} = {u.multiplier} {med.baseUnit || 'Lembar'}</span>
+                              <span key={ui} className="bg-indigo-50 text-indigo-700 px-1 rounded font-bold">1 {u.name} = {u.multiplier} {med.baseUnit || 'Lembar'} {(u.customPriceMedis || u.customPrice || u.customPriceMb || u.customPriceKhusus || u.customPriceHkOtc) ? `(Manual)` : ''}</span>
                             ))}
                           </div>
                         </div>

@@ -51,20 +51,24 @@ interface MedicineCardProps {
 }
 
 function MedicineCard({ med, idx, getClassificationStyles, setSelectedMedicine }: MedicineCardProps) {
-  const [selectedUnit, setSelectedUnit] = useState<string>(med.baseUnit || 'Lembar');
+  const [selectedUnit, setSelectedUnit] = useState<string>(med.defaultUnit || med.baseUnit || 'Lembar');
 
-  // Multiplier for price calculation
-  const multiplier = useMemo(() => {
-    if (selectedUnit === (med.baseUnit || 'Lembar')) return 1;
-    const found = med.multiUnits?.find(u => u.name === selectedUnit);
-    return found ? found.multiplier : 1;
+  const selectedUnitObj = useMemo(() => {
+    if (selectedUnit === (med.baseUnit || 'Lembar')) return { multiplier: 1 };
+    return med.multiUnits?.find(u => u.name === selectedUnit) || { multiplier: 1 };
   }, [selectedUnit, med]);
+
+  const multiplier = selectedUnitObj.multiplier;
+  const customPrice = (selectedUnitObj as any).customPriceMedis !== undefined ? (selectedUnitObj as any).customPriceMedis : (selectedUnitObj as any).customPrice;
 
   const styles = getClassificationStyles(med.category);
 
-  // Calculate pricing based on multiplier
-  const basePrice = (med.priceMedis || med.price) * multiplier;
-  const promoPrice = (med.pricePromo || med.promoPrice) ? (med.pricePromo || med.promoPrice || 0) * multiplier : undefined;
+  // Calculate pricing based on multiplier or customPrice
+  const basePrice = customPrice !== undefined ? customPrice : (med.priceMedis || med.price) * multiplier;
+  const hasPromo = !!(med.pricePromo || med.promoPrice);
+  const promoPrice = hasPromo 
+    ? (customPrice !== undefined ? customPrice : (med.pricePromo || med.promoPrice || 0) * multiplier) 
+    : undefined;
 
   return (
     <motion.div
@@ -122,38 +126,34 @@ function MedicineCard({ med, idx, getClassificationStyles, setSelectedMedicine }
           </p>
 
           {/* Dynamic Satuan selector badge row if multi satuan is available */}
-          {med.multiUnits && med.multiUnits.length > 0 && (
-            <div className="mt-2 pb-2 border-t border-slate-100/80 dark:border-slate-800 pt-2" onClick={(e) => e.stopPropagation()}>
-              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1.5">Pilih Satuan:</span>
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setSelectedUnit(med.baseUnit || 'Lembar')}
-                  className={`px-2 py-1 rounded text-[10px] font-bold border transition-all cursor-pointer ${
-                    selectedUnit === (med.baseUnit || 'Lembar')
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                      : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-600'
-                  }`}
-                >
-                  {med.baseUnit || 'Lembar'}
-                </button>
-                {med.multiUnits.map((u) => (
-                  <button
-                    key={u.name}
-                    type="button"
-                    onClick={() => setSelectedUnit(u.name)}
-                    className={`px-2 py-1 rounded text-[10px] font-bold border transition-all cursor-pointer ${
-                      selectedUnit === u.name
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                        : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-600'
-                    }`}
-                  >
-                    {u.name}
-                  </button>
-                ))}
+          {med.multiUnits && med.multiUnits.length > 0 && (() => {
+            const defaultU = med.defaultUnit || med.baseUnit || 'Lembar';
+            const allUnits = [med.baseUnit || 'Lembar', ...med.multiUnits.map(u => u.name)];
+            // Order so default is first
+            const orderedUnits = Array.from(new Set([defaultU, ...allUnits]));
+
+            return (
+              <div className="mt-2 pb-2 border-t border-slate-100/80 dark:border-slate-800 pt-2" onClick={(e) => e.stopPropagation()}>
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1.5">Pilih Satuan:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {orderedUnits.map((uName) => (
+                    <button
+                      key={uName}
+                      type="button"
+                      onClick={() => setSelectedUnit(uName)}
+                      className={`px-2 py-1 rounded text-[10px] font-bold border transition-all cursor-pointer ${
+                        selectedUnit === uName
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                          : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-600'
+                      }`}
+                    >
+                      {uName}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
 
@@ -208,17 +208,16 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
 
   useEffect(() => {
     if (selectedMedicine) {
-      setSelectedModalUnit(selectedMedicine.baseUnit || 'Lembar');
+      setSelectedModalUnit(selectedMedicine.defaultUnit || selectedMedicine.baseUnit || 'Lembar');
     } else {
       setSelectedModalUnit('');
     }
   }, [selectedMedicine]);
 
-  const modalMultiplier = useMemo(() => {
-    if (!selectedMedicine) return 1;
-    if (selectedModalUnit === (selectedMedicine.baseUnit || 'Lembar')) return 1;
-    const found = selectedMedicine.multiUnits?.find(u => u.name === selectedModalUnit);
-    return found ? found.multiplier : 1;
+  const modalUnitInfo = useMemo(() => {
+    if (!selectedMedicine) return { multiplier: 1 };
+    if (selectedModalUnit === (selectedMedicine.baseUnit || 'Lembar')) return { multiplier: 1 };
+    return selectedMedicine.multiUnits?.find(u => u.name === selectedModalUnit) || { multiplier: 1 };
   }, [selectedModalUnit, selectedMedicine]);
 
   // Categories list
@@ -323,12 +322,20 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
   };
 
   const handleWhatsappOrder = (med: Medicine) => {
-    const originalPrice = med.isPromo && med.promoPrice ? med.promoPrice : med.price;
-    const finalPrice = originalPrice * modalMultiplier;
-    const chosenUnit = selectedModalUnit || med.baseUnit || 'Lembar';
-    const chosenMultiplierText = modalMultiplier > 1 ? ` (Isi ${modalMultiplier} ${med.baseUnit || 'Lembar'})` : '';
+    const customP = (modalUnitInfo as any).customPriceMedis !== undefined ? (modalUnitInfo as any).customPriceMedis : (modalUnitInfo as any).customPrice;
+    let finalPrice = 0;
+    
+    if (customP !== undefined) {
+      finalPrice = customP;
+    } else {
+      const originalPrice = med.isPromo && med.promoPrice ? med.promoPrice : (med.priceMedis || med.price);
+      finalPrice = originalPrice * modalUnitInfo.multiplier;
+    }
 
-    const text = `Halo Apotek Assyifa Farma Cideres, saya ingin menanyakan/memesan obat berikut:\n\n*Nama Obat:* ${med.name}\n*Kategori:* ${med.category}\n*Satuan Pesanan:* ${chosenUnit}${chosenMultiplierText}\n*Harga:* ${formatRupiah(finalPrice)} (Konversi Otomatis)\n\nApakah stok masih ada? Terima kasih.`;
+    const chosenUnit = selectedModalUnit || med.baseUnit || 'Lembar';
+    const chosenMultiplierText = modalUnitInfo.multiplier > 1 ? ` (Isi ${modalUnitInfo.multiplier} ${med.baseUnit || 'Lembar'})` : '';
+
+    const text = `Halo Apotek Assyifa Farma Cideres, saya ingin menanyakan/memesan obat berikut:\n\n*Nama Obat:* ${med.name}\n*Kategori:* ${med.category}\n*Satuan Pesanan:* ${chosenUnit}${chosenMultiplierText}\n*Harga:* ${formatRupiah(finalPrice)}\n\nApakah stok masih ada? Terima kasih.`;
     const encodedText = encodeURIComponent(text);
     const whatsappUrl = `https://wa.me/${settings.whatsappNumber}?text=${encodedText}`;
     window.open(whatsappUrl, '_blank');
@@ -605,59 +612,79 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
                 <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col gap-1 shadow-sm">
                   <div>
                     <span className="text-[11px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 block uppercase tracking-wider mb-1.5">Harga ({selectedModalUnit})</span>
-                    {selectedMedicine.isPromo && selectedMedicine.promoPrice ? (
-                      <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
-                        <span className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400">
-                          {formatRupiah(selectedMedicine.promoPrice * modalMultiplier)}
+                    {(() => {
+                      const customP = (modalUnitInfo as any).customPriceMedis !== undefined ? (modalUnitInfo as any).customPriceMedis : (modalUnitInfo as any).customPrice;
+                      const hasPromo = selectedMedicine.isPromo && selectedMedicine.promoPrice;
+                      if (customP !== undefined) {
+                        return (
+                          <span className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 mt-0.5 block">
+                            {formatRupiah(customP)}
+                          </span>
+                        );
+                      }
+                      
+                      if (hasPromo) {
+                        return (
+                          <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
+                            <span className="text-2xl sm:text-3xl font-black text-rose-600 dark:text-rose-400">
+                              {formatRupiah(selectedMedicine.promoPrice * modalUnitInfo.multiplier)}
+                            </span>
+                            <span className="text-sm sm:text-base text-slate-400 dark:text-slate-500 line-through font-semibold">
+                              {formatRupiah((selectedMedicine.priceMedis || selectedMedicine.price) * modalUnitInfo.multiplier)}
+                            </span>
+                            <span className="bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 text-[10px] font-black px-2 py-0.5 rounded uppercase ml-auto">Promo Spesial</span>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <span className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 mt-0.5 block">
+                          {formatRupiah((selectedMedicine.priceMedis || selectedMedicine.price) * modalUnitInfo.multiplier)}
                         </span>
-                        <span className="text-sm sm:text-base text-slate-400 dark:text-slate-500 line-through font-semibold">
-                          {formatRupiah((selectedMedicine.priceMedis || selectedMedicine.price) * modalMultiplier)}
-                        </span>
-                        <span className="bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 text-[10px] font-black px-2 py-0.5 rounded uppercase ml-auto">Promo Spesial</span>
-                      </div>
-                    ) : (
-                      <span className="text-2xl sm:text-3xl font-black text-slate-800 dark:text-slate-100 mt-0.5 block">
-                        {formatRupiah((selectedMedicine.priceMedis || selectedMedicine.price) * modalMultiplier)}
-                      </span>
-                    )}
+                      );
+                    })()}
                   </div>
                 </div>
 
                 {/* Modal Unit Selector */}
-                {selectedMedicine.multiUnits && selectedMedicine.multiUnits.length > 0 && (
-                  <div className="p-4 sm:p-5 bg-blue-50/50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/50 flex flex-col gap-3">
-                    <span className="text-xs sm:text-sm font-extrabold text-blue-900 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
-                      <Tag size={16} /> Pilih Satuan Pembelian:
-                    </span>
-                    <div className="flex flex-wrap gap-2.5 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedModalUnit(selectedMedicine.baseUnit || 'Lembar')}
-                        className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black border transition-all cursor-pointer ${
-                          selectedModalUnit === (selectedMedicine.baseUnit || 'Lembar')
-                            ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
-                            : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 shadow-sm'
-                        }`}
-                      >
-                        {selectedMedicine.baseUnit || 'Lembar'}
-                      </button>
-                      {selectedMedicine.multiUnits.map((u) => (
-                        <button
-                          key={u.name}
-                          type="button"
-                          onClick={() => setSelectedModalUnit(u.name)}
-                          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black border transition-all cursor-pointer ${
-                            selectedModalUnit === u.name
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
-                              : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 shadow-sm'
-                          }`}
-                        >
-                          1 {u.name} <span className="opacity-70 font-semibold ml-1">({u.multiplier} x {selectedMedicine.baseUnit || 'Lembar'})</span>
-                        </button>
-                      ))}
+                {selectedMedicine.multiUnits && selectedMedicine.multiUnits.length > 0 && (() => {
+                  const defaultU = selectedMedicine.defaultUnit || selectedMedicine.baseUnit || 'Lembar';
+                  const baseU = selectedMedicine.baseUnit || 'Lembar';
+                  const allUnits = [baseU, ...selectedMedicine.multiUnits.map(u => u.name)];
+                  const orderedUnits = Array.from(new Set([defaultU, ...allUnits]));
+
+                  return (
+                    <div className="p-4 sm:p-5 bg-blue-50/50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/50 flex flex-col gap-3">
+                      <span className="text-xs sm:text-sm font-extrabold text-blue-900 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                        <Tag size={16} /> Pilih Satuan Pembelian:
+                      </span>
+                      <div className="flex flex-wrap gap-2.5 pt-1">
+                        {orderedUnits.map((uName) => {
+                          const isBase = uName === baseU;
+                          const multiU = selectedMedicine.multiUnits?.find(u => u.name === uName);
+                          return (
+                            <button
+                              key={uName}
+                              type="button"
+                              onClick={() => setSelectedModalUnit(uName)}
+                              className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black border transition-all cursor-pointer ${
+                                selectedModalUnit === uName
+                                  ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
+                                  : 'bg-white dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 shadow-sm'
+                              }`}
+                            >
+                              {isBase ? uName : (
+                                <>
+                                  1 {uName} <span className="opacity-70 font-semibold ml-1">({multiU?.multiplier} x {baseU})</span>
+                                </>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Indication section */}
                 <div className="space-y-2">

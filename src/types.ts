@@ -6,6 +6,11 @@
 export interface MultiUnit {
   name: string;
   multiplier: number;
+  customPrice?: number; // kept for backwards compatibility
+  customPriceMedis?: number;
+  customPriceMb?: number;
+  customPriceKhusus?: number;
+  customPriceHkOtc?: number;
 }
 
 export interface Medicine {
@@ -27,6 +32,7 @@ export interface Medicine {
   promoPrice?: number; // mapped value of pricePromo for compatibility
   isPromo: boolean;
   baseUnit?: string; // e.g. Lembar, Tablet
+  defaultUnit?: string; // e.g. the unit that should be shown by default (matches baseUnit or a name in multiUnits)
   multiUnits?: MultiUnit[]; // custom units like Box = 10 Lembar
 }
 
