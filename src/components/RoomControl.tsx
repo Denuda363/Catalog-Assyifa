@@ -2946,7 +2946,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                               <ul className="list-disc list-inside space-y-0.5">
                                 {order.items.map((item, idx) => (
                                   <li key={idx}>
-                                    <span className="font-medium text-slate-700">{item.medicine.name}</span>
+                                    <span className="font-medium text-slate-700">{item.name}</span>
                                     <span className="text-slate-500"> ({item.quantity} {item.unit})</span>
                                   </li>
                                 ))}
