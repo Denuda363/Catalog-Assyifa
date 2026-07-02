@@ -1,9 +1,17 @@
 import { db } from './firebase';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, writeBatch } from 'firebase/firestore';
-import { Medicine, Promo, Settings, ActionLog } from './types';
+import { Medicine, Promo, Settings, ActionLog, Order } from './types';
 import { INITIAL_MEDICINES, INITIAL_PROMOS } from './initialData';
 
 const SETTINGS_ID = "general";
+
+export function subscribeOrders(callback: (orders: Order[]) => void) {
+  return onSnapshot(collection(db, 'orders'), (snapshot) => {
+    const orders = snapshot.docs.map(d => d.data() as Order);
+    orders.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    callback(orders);
+  });
+}
 
 export function subscribeMedicines(callback: (medicines: Medicine[]) => void) {
   return onSnapshot(collection(db, 'medicines'), (snapshot) => {
@@ -74,6 +82,15 @@ export async function addLogObj(action: string, details: string) {
     details
   };
   await setDoc(doc(db, 'logs', newLog.id), newLog);
+}
+
+export async function saveOrder(order: Order) {
+  await setDoc(doc(db, 'orders', order.id), removeUndefined(order));
+}
+
+export async function updateOrder(orderId: string, updates: Partial<Order>) {
+  // To keep it simple we can just fetch, merge, save, or use setDoc with merge: true
+  await setDoc(doc(db, 'orders', orderId), updates, { merge: true });
 }
 
 // Full array save functions since the original code expects to save whole lists (e.g. from Excel)

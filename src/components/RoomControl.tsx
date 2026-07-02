@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Medicine, Promo, ActionLog, Settings, MultiUnit } from '../types';
+import { Medicine, Promo, ActionLog, Settings, MultiUnit, Order } from '../types';
 import { formatRupiah } from '../utils';
 import { 
   saveMedicine, 
@@ -42,7 +42,8 @@ import {
   Phone,
   Hash,
   MapPin,
-  Search
+  Search,
+  ShoppingCart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
@@ -51,6 +52,7 @@ interface RoomControlProps {
   medicines: Medicine[];
   promos: Promo[];
   settings: Settings;
+  orders: Order[];
   onDataChange: () => void;
 }
 
@@ -74,7 +76,7 @@ export interface ImportPreviewData {
 // Hidden SUPER USER PIN
 const SUPER_USER_PIN = '151219';
 
-export default function RoomControl({ medicines, promos, settings, onDataChange }: RoomControlProps) {
+export default function RoomControl({ medicines, promos, settings, orders, onDataChange }: RoomControlProps) {
   const [pinInput, setPinInput] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSuperUser, setIsSuperUser] = useState(false);
@@ -92,16 +94,18 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
   const [loginError, setLoginError] = useState('');
 
   // Control tabs
-  const [activeTab, setActiveTab] = useState<'medicines' | 'promos' | 'settings' | 'logs' | 'super'>('medicines');
+  const [activeTab, setActiveTab] = useState<'medicines' | 'promos' | 'settings' | 'logs' | 'super' | 'orders'>('orders');
 
   // Pagination and Search states
   const [medicinePage, setMedicinePage] = useState(1);
   const [promoPage, setPromoPage] = useState(1);
   const [logPage, setLogPage] = useState(1);
+  const [orderPage, setOrderPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
   // Search states
   const [medicineSearchTerm, setMedicineSearchTerm] = useState('');
+  const [orderSearchTerm, setOrderSearchTerm] = useState('');
 
   // Derived filtered medicines
   const filteredMedicines = useMemo(() => {
@@ -114,10 +118,25 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
     );
   }, [medicines, medicineSearchTerm]);
 
+  // Derived filtered orders
+  const filteredOrders = useMemo(() => {
+    if (!orderSearchTerm.trim()) return orders;
+    const term = orderSearchTerm.toLowerCase();
+    return orders.filter(order => 
+      order.customer.name.toLowerCase().includes(term) ||
+      order.customer.phone.toLowerCase().includes(term) ||
+      order.id.toLowerCase().includes(term)
+    );
+  }, [orders, orderSearchTerm]);
+
   // Reset page when search term changes
   useEffect(() => {
     setMedicinePage(1);
   }, [medicineSearchTerm]);
+
+  useEffect(() => {
+    setOrderPage(1);
+  }, [orderSearchTerm]);
 
   // Form states - Medicines
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
@@ -1275,6 +1294,17 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
               }`}
             >
               <Settings2 size={14} /> Aturan & PIN
+            </button>
+            <button
+              id="admin-tab-orders"
+              onClick={() => setActiveTab('orders')}
+              className={`px-4 py-3 font-semibold text-xs transition-all border-b-2 whitespace-nowrap cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                activeTab === 'orders' 
+                  ? 'border-blue-600 text-blue-700 font-bold bg-white rounded-t-lg shadow-sm' 
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-t-lg'
+              }`}
+            >
+              <ShoppingCart size={14} /> Riwayat Order
             </button>
             {isSuperUser && (
               <>
@@ -2860,6 +2890,78 @@ export default function RoomControl({ medicines, promos, settings, onDataChange 
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* ORDERS VIEW */}
+            {activeTab === 'orders' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center flex-wrap gap-4">
+                  <div>
+                    <h3 className="font-extrabold text-slate-800 text-base">RIWAYAT ORDER</h3>
+                    <p className="text-xs text-slate-400">Daftar order pesanan yang masuk melalui WhatsApp.</p>
+                  </div>
+                  <div className="relative w-full sm:w-64">
+                    <input
+                      type="text"
+                      placeholder="Cari nama, No HP, ID..."
+                      value={orderSearchTerm}
+                      onChange={(e) => setOrderSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    />
+                    <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
+                  <table className="w-full text-left text-xs text-slate-600">
+                    <thead className="bg-slate-100/50 text-[10px] uppercase text-slate-500 font-bold border-b border-slate-200">
+                      <tr>
+                        <th className="py-3 px-4">Waktu</th>
+                        <th className="py-3 px-4">Pelanggan</th>
+                        <th className="py-3 px-4">Items</th>
+                        <th className="py-3 px-4">Total Harga</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {filteredOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-8 text-center text-slate-400">Belum ada order.</td>
+                        </tr>
+                      ) : (
+                        filteredOrders.slice((orderPage - 1) * ITEMS_PER_PAGE, orderPage * ITEMS_PER_PAGE).map((order) => (
+                          <tr key={order.id} className="hover:bg-white transition-colors">
+                            <td className="py-3 px-4 whitespace-nowrap">
+                              {new Date(order.timestamp).toLocaleString('id-ID', {
+                                day: '2-digit', month: 'short', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit'
+                              })}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="font-bold text-slate-800">{order.customer.name}</div>
+                              <div className="text-slate-500 flex items-center gap-1 mt-0.5"><Phone size={10} /> {order.customer.phone}</div>
+                              <div className="text-slate-500 flex items-center gap-1 mt-0.5"><MapPin size={10} /> {order.customer.address}</div>
+                            </td>
+                            <td className="py-3 px-4">
+                              <ul className="list-disc list-inside space-y-0.5">
+                                {order.items.map((item, idx) => (
+                                  <li key={idx}>
+                                    <span className="font-medium text-slate-700">{item.medicine.name}</span>
+                                    <span className="text-slate-500"> ({item.quantity} {item.unit})</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </td>
+                            <td className="py-3 px-4 font-bold text-slate-800 whitespace-nowrap">
+                              Rp {formatRupiah(order.totalPrice)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {renderPagination(orderPage, filteredOrders.length, setOrderPage)}
               </div>
             )}
 

@@ -69,3 +69,29 @@ export interface ActionLog {
   timestamp: string;
   details: string;
 }
+
+export interface CartItem {
+  id: string; // unique internal id for the cart item (since same med can be added with diff units)
+  medicineId: string;
+  name: string;
+  category: string;
+  unit: string;
+  multiplier: number;
+  price: number; // final calculated price per unit (after promo/custom)
+  quantity: number;
+}
+
+export interface CustomerData {
+  name: string;
+  address: string;
+  phone: string;
+}
+
+export interface Order {
+  id: string;
+  customerData: CustomerData;
+  items: CartItem[];
+  totalPrice: number;
+  status: 'pending' | 'completed' | 'cancelled';
+  timestamp: string;
+}

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Medicine, Settings } from '../types';
+import { Medicine, Settings, CartItem } from '../types';
 import { formatRupiah, formatDate } from '../utils';
 import { 
   Search, 
@@ -17,7 +17,10 @@ import {
   ChevronRight, 
   X, 
   CheckCircle, 
-  AlertTriangle 
+  AlertTriangle,
+  Plus,
+  Minus,
+  ShoppingCart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -40,6 +43,8 @@ interface CatalogViewProps {
   settings: Settings;
   selectedMedicine: Medicine | null;
   setSelectedMedicine: (medicine: Medicine | null) => void;
+  cart: CartItem[];
+  setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
 }
 
 interface MedicineCardProps {
@@ -192,12 +197,13 @@ function MedicineCard({ med, idx, getClassificationStyles, setSelectedMedicine }
   );
 }
 
-export default function CatalogView({ medicines, settings, selectedMedicine, setSelectedMedicine }: CatalogViewProps) {
+export default function CatalogView({ medicines, settings, selectedMedicine, setSelectedMedicine, cart, setCart }: CatalogViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [selectedCategory, setSelectedCategory] = useState('Semua');
   const [sortOption, setSortOption] = useState('name-asc');
   const [selectedModalUnit, setSelectedModalUnit] = useState<string>('');
+  const [quantity, setQuantity] = useState(1);
   const [displayLimit, setDisplayLimit] = useState<number | 'all'>(20);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -209,6 +215,7 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
   useEffect(() => {
     if (selectedMedicine) {
       setSelectedModalUnit(selectedMedicine.defaultUnit || selectedMedicine.baseUnit || 'Lembar');
+      setQuantity(1);
     } else {
       setSelectedModalUnit('');
     }
@@ -321,7 +328,7 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
     setCurrentPage(1);
   };
 
-  const handleWhatsappOrder = (med: Medicine) => {
+  const handleAddToCart = (med: Medicine) => {
     const customP = (modalUnitInfo as any).customPriceMedis !== undefined ? (modalUnitInfo as any).customPriceMedis : (modalUnitInfo as any).customPrice;
     let finalPrice = 0;
     
@@ -333,12 +340,30 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
     }
 
     const chosenUnit = selectedModalUnit || med.baseUnit || 'Lembar';
-    const chosenMultiplierText = modalUnitInfo.multiplier > 1 ? ` (Isi ${modalUnitInfo.multiplier} ${med.baseUnit || 'Lembar'})` : '';
-
-    const text = `Halo Apotek Assyifa Farma Cideres, saya ingin menanyakan/memesan obat berikut:\n\n*Nama Obat:* ${med.name}\n*Kategori:* ${med.category}\n*Satuan Pesanan:* ${chosenUnit}${chosenMultiplierText}\n*Harga:* ${formatRupiah(finalPrice)}\n\nApakah stok masih ada? Terima kasih.`;
-    const encodedText = encodeURIComponent(text);
-    const whatsappUrl = `https://wa.me/${settings.whatsappNumber}?text=${encodedText}`;
-    window.open(whatsappUrl, '_blank');
+    
+    // Check if same item + unit is already in cart
+    const existingIndex = cart.findIndex(c => c.medicineId === med.id && c.unit === chosenUnit);
+    if (existingIndex >= 0) {
+      const newCart = [...cart];
+      newCart[existingIndex].quantity += quantity;
+      setCart(newCart);
+    } else {
+      setCart(prev => [
+        ...prev, 
+        {
+          id: Math.random().toString(36).substring(7),
+          medicineId: med.id,
+          name: med.name,
+          category: med.category,
+          unit: chosenUnit,
+          multiplier: modalUnitInfo.multiplier,
+          price: finalPrice,
+          quantity: quantity
+        }
+      ]);
+    }
+    
+    setSelectedMedicine(null); // Close modal
   };
 
   return (
@@ -720,20 +745,55 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
 
               {/* Sticky Footer Triggers (Tappable touch size 44px) */}
               <div className="p-4 sm:p-5 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-3 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+                <div className="flex items-center justify-between sm:justify-start gap-4 px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Jumlah</span>
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                      className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg shadow-sm active:scale-95 transition-all"
+                    >
+                      <Minus size={16} />
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      value={quantity || ''}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val)) {
+                          setQuantity(Math.max(1, val));
+                        } else if (e.target.value === '') {
+                          setQuantity('' as any);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        if (!quantity) setQuantity(1);
+                      }}
+                      className="w-12 text-center font-black text-slate-800 dark:text-slate-100 bg-transparent outline-none p-0 hide-arrows"
+                    />
+                    <button 
+                      onClick={() => setQuantity(q => q + 1)}
+                      className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg shadow-sm active:scale-95 transition-all"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                </div>
+                
                 <button
-                  id={`whatsapp-order-${selectedMedicine.id}`}
-                  onClick={() => handleWhatsappOrder(selectedMedicine)}
+                  id={`add-to-cart-${selectedMedicine.id}`}
+                  onClick={() => handleAddToCart(selectedMedicine)}
                   className="w-full sm:flex-1 py-3.5 px-5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer min-h-[48px] bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30 active:scale-[0.98]"
                 >
-                  <ShoppingBag size={18} />
-                  Pesan & Konsultasi Obat
+                  <ShoppingCart size={18} />
+                  Tambah ke Keranjang
                 </button>
                 <button
                   id="close-overlay-btn"
                   onClick={() => setSelectedMedicine(null)}
                   className="w-full sm:w-auto py-3.5 px-6 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-2xl font-bold text-sm hover:bg-slate-100 dark:hover:bg-slate-700 transition-all cursor-pointer min-h-[48px] active:scale-[0.98] shadow-sm"
                 >
-                  Tutup Kembali
+                  Tutup
                 </button>
               </div>
 

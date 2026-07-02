@@ -1,0 +1,116 @@
+import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
+import { User, MapPin, Phone, Save, ShieldCheck } from 'lucide-react';
+import { CustomerData } from '../types';
+
+export default function ProfileView() {
+  const [customer, setCustomer] = useState<CustomerData>({
+    name: '',
+    address: '',
+    phone: ''
+  });
+  const [isSaved, setIsSaved] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('customerData');
+    if (saved) {
+      try {
+        setCustomer(JSON.parse(saved));
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, []);
+
+  const handleSave = () => {
+    localStorage.setItem('customerData', JSON.stringify(customer));
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 3000);
+  };
+
+  return (
+    <div className="space-y-6 max-w-2xl mx-auto pb-12">
+      <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-6 sm:p-10 shadow-lg relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mr-10 -mt-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="relative z-10 flex items-center gap-4">
+          <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30 text-white">
+            <User size={32} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-white">Profil Pelanggan</h1>
+            <p className="text-blue-100 font-medium mt-1">Lengkapi data untuk kemudahan saat pesanan (checkout)</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-100 dark:border-slate-800 space-y-6">
+        <div>
+          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Nama Lengkap</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <User size={18} className="text-slate-400" />
+            </div>
+            <input 
+              type="text" 
+              value={customer.name}
+              onChange={(e) => setCustomer({...customer, name: e.target.value})}
+              className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 font-medium transition-all"
+              placeholder="Contoh: Budi Santoso"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Nomor WhatsApp</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Phone size={18} className="text-slate-400" />
+            </div>
+            <input 
+              type="tel" 
+              value={customer.phone}
+              onChange={(e) => setCustomer({...customer, phone: e.target.value})}
+              className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 font-medium transition-all"
+              placeholder="Contoh: 08123456789"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Alamat Lengkap</label>
+          <div className="relative">
+            <div className="absolute top-3 left-0 pl-4 pointer-events-none">
+              <MapPin size={18} className="text-slate-400" />
+            </div>
+            <textarea 
+              value={customer.address}
+              onChange={(e) => setCustomer({...customer, address: e.target.value})}
+              rows={3}
+              className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 font-medium resize-none transition-all"
+              placeholder="Detail alamat pengiriman atau penjemputan..."
+            />
+          </div>
+        </div>
+
+        <div className="pt-4">
+          <button
+            onClick={handleSave}
+            className="w-full py-4 rounded-xl font-black flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30"
+          >
+            {isSaved ? (
+              <>
+                <ShieldCheck size={20} />
+                Tersimpan
+              </>
+            ) : (
+              <>
+                <Save size={20} />
+                Simpan Profil
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

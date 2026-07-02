@@ -4,9 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import { Medicine, Promo, Settings } from '../types';
+import { Medicine, Promo, Settings, CartItem } from '../types';
 import { formatRupiah } from '../utils';
-import { Tag, Calendar, Gift, ChevronRight, Share2, MessageCircle, Activity } from 'lucide-react';
+import { Tag, Calendar, Gift, ChevronRight, Share2, MessageCircle, Activity, ShoppingCart, Plus, Minus } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface PromoViewProps {
@@ -14,9 +14,11 @@ interface PromoViewProps {
   medicines: Medicine[];
   settings: Settings;
   onSelectMedicine: (medicine: Medicine) => void;
+  cart: CartItem[];
+  setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
 }
 
-export default function PromoView({ promos, medicines, settings, onSelectMedicine }: PromoViewProps) {
+export default function PromoView({ promos, medicines, settings, onSelectMedicine, cart, setCart }: PromoViewProps) {
   const [visibleCount, setVisibleCount] = useState(12);
   
   // Find linked medicine

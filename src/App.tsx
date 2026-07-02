@@ -4,14 +4,18 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Medicine, Promo, Settings } from './types';
+import { Medicine, Promo, Settings, CartItem, Order } from './types';
 import CatalogView from './components/CatalogView';
 import PromoView from './components/PromoView';
 import RoomControl from './components/RoomControl';
+import CartModal from './components/CartModal';
+import HomeView from './components/HomeView';
+import ProfileView from './components/ProfileView';
 import { 
   subscribeMedicines, 
   subscribePromos, 
   subscribeSettings,
+  subscribeOrders,
   firebaseInitializeData
 } from './firebaseUtils';
 import { 
@@ -25,16 +29,22 @@ import {
   PhoneCall, 
   ShieldCheck,
   Moon,
-  Sun
+  Sun,
+  ShoppingCart,
+  Home,
+  User
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'catalog' | 'promo' | 'control'>('catalog');
+  const [activeTab, setActiveTab] = useState<'home' | 'catalog' | 'promo' | 'profile' | 'control'>('home');
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [promos, setPromos] = useState<Promo[]>([]);
   const [settings, setSettings] = useState<Settings>({ adminPin: '12345', whatsappNumber: '6281234567890' });
+  const [orders, setOrders] = useState<Order[]>([]);
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
   });
@@ -55,11 +65,13 @@ export default function App() {
     const unsub1 = subscribeMedicines(setMedicines);
     const unsub2 = subscribePromos(setPromos);
     const unsub3 = subscribeSettings(setSettings);
+    const unsub4 = subscribeOrders(setOrders);
     
     return () => {
       unsub1();
       unsub2();
       unsub3();
+      unsub4();
     };
   }, []);
 
@@ -288,8 +300,32 @@ export default function App() {
         
         {/* TAB CONTROLS */}
         <div className="fixed bottom-4 left-4 right-4 z-50 sm:relative sm:bottom-0 sm:left-auto sm:right-auto sm:flex sm:justify-center w-auto sm:w-full px-0">
-          <div className="flex w-full sm:w-auto p-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-xl shadow-slate-200/30 dark:shadow-slate-900/40 relative max-w-sm mx-auto sm:max-w-none">
+          <div className="flex w-full sm:w-auto p-1.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-xl shadow-slate-200/30 dark:shadow-slate-900/40 relative max-w-md mx-auto sm:max-w-none">
             
+            {/* Home tab button */}
+            <button
+              id="tab-btn-home"
+              onClick={() => {
+                setActiveTab('home');
+                setSelectedMedicine(null);
+              }}
+              className={`relative flex-1 sm:flex-none px-2 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
+                activeTab === 'home'
+                  ? 'text-white'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              {activeTab === 'home' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl shadow-md -z-10"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <Home size={16} className="shrink-0" />
+              <span className="tracking-wide">Beranda</span>
+            </button>
+
             {/* Catalog tab button */}
             <button
               id="tab-btn-catalog"
@@ -297,7 +333,7 @@ export default function App() {
                 setActiveTab('catalog');
                 setSelectedMedicine(null);
               }}
-              className={`relative flex-1 sm:flex-none px-3 sm:px-8 py-3 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
+              className={`relative flex-1 sm:flex-none px-2 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
                 activeTab === 'catalog'
                   ? 'text-white'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -321,7 +357,7 @@ export default function App() {
                 setActiveTab('promo');
                 setSelectedMedicine(null);
               }}
-              className={`relative flex-1 sm:flex-none px-3 sm:px-8 py-3 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
+              className={`relative flex-1 sm:flex-none px-2 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
                 activeTab === 'promo'
                   ? 'text-white'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -343,6 +379,30 @@ export default function App() {
               <span className="tracking-wide">Promo</span>
             </button>
 
+            {/* Profile tab button */}
+            <button
+              id="tab-btn-profile"
+              onClick={() => {
+                setActiveTab('profile');
+                setSelectedMedicine(null);
+              }}
+              className={`relative flex-1 sm:flex-none px-2 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
+                activeTab === 'profile'
+                  ? 'text-white'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              {activeTab === 'profile' && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl shadow-md -z-10"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <User size={16} className="shrink-0" />
+              <span className="tracking-wide">Profil</span>
+            </button>
+
             {/* Control tab button */}
             <button
               id="tab-btn-control"
@@ -350,7 +410,7 @@ export default function App() {
                 setActiveTab('control');
                 setSelectedMedicine(null);
               }}
-              className={`relative flex-1 sm:flex-none px-3 sm:px-8 py-3 rounded-xl text-[10px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
+              className={`relative flex-1 sm:flex-none px-2 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
                 activeTab === 'control'
                   ? 'text-white'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -371,6 +431,19 @@ export default function App() {
 
         {/* Tab View Switchboard with Custom Transition wrappers */}
         <div className="focus:outline-hidden">
+          {activeTab === 'home' && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+            >
+              <HomeView 
+                onNavigate={setActiveTab}
+                medicines={clientMedicines}
+              />
+            </motion.div>
+          )}
+
           {activeTab === 'catalog' && (
             <motion.div
               initial={{ opacity: 0, y: 15 }}
@@ -382,6 +455,8 @@ export default function App() {
                 settings={settings} 
                 selectedMedicine={selectedMedicine}
                 setSelectedMedicine={setSelectedMedicine}
+                cart={cart}
+                setCart={setCart}
               />
             </motion.div>
           )}
@@ -397,7 +472,19 @@ export default function App() {
                 medicines={clientMedicines} 
                 settings={settings}
                 onSelectMedicine={handleSelectFromPromo}
+                cart={cart}
+                setCart={setCart}
               />
+            </motion.div>
+          )}
+
+          {activeTab === 'profile' && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+            >
+              <ProfileView />
             </motion.div>
           )}
 
@@ -410,7 +497,8 @@ export default function App() {
               <RoomControl 
                 medicines={medicines} 
                 promos={promos} 
-                settings={settings} 
+                settings={settings}
+                orders={orders}
                 onDataChange={refreshData}
               />
             </motion.div>
@@ -453,6 +541,30 @@ export default function App() {
           <span className="text-slate-400">Pelayanan Cepat • Akurat • Amanah</span>
         </div>
       </footer>
+
+      {/* Floating Cart Button */}
+      {cart.length > 0 && (
+        <button
+          onClick={() => setIsCartOpen(true)}
+          className="fixed bottom-24 right-4 sm:bottom-8 sm:right-8 z-50 bg-blue-600 text-white p-3 sm:p-4 rounded-full shadow-xl shadow-blue-600/30 hover:bg-blue-700 transition-all active:scale-95 group"
+        >
+          <div className="relative">
+            <ShoppingCart size={24} className="group-hover:scale-110 transition-transform" />
+            <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900">
+              {cart.reduce((sum, item) => sum + item.quantity, 0)}
+            </span>
+          </div>
+        </button>
+      )}
+
+      {/* Cart Modal */}
+      <CartModal 
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        cart={cart}
+        setCart={setCart}
+        settings={settings}
+      />
     </div>
   );
 }
