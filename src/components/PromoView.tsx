@@ -80,7 +80,7 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
           <span className="bg-white/20 text-white font-bold text-[9px] sm:text-[10px] tracking-wider px-2.5 py-1 rounded-full uppercase border border-white/10 inline-flex items-center gap-1.5 animate-pulse">
             <Gift size={11} /> Hubungi Lewat WA Untuk Klaim
           </span>
-          <h2 className="text-xl sm:text-2xl font-black tracking-tight select-none">HEMAT SETIAP PEKAN!</h2>
+          <h2 className="text-2xl sm:text-3xl font-display font-bold tracking-tight select-none">HEMAT SETIAP PEKAN!</h2>
           <p className="text-xs sm:text-sm font-medium text-rose-50 leading-relaxed">
             Dapatkan diskon eksklusif dan potongan harga khusus untuk obat-obatan esensial, suplemen imunitas, dan nutrisi keluarga di Apotek Assyifa Farma Cideres.
           </p>

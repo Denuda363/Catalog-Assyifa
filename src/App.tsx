@@ -309,7 +309,7 @@ export default function App() {
                 setActiveTab('home');
                 setSelectedMedicine(null);
               }}
-              className={`relative flex-1 sm:flex-none px-2 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
+              className={`relative flex-1 sm:flex-none px-0 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 cursor-pointer z-10 ${
                 activeTab === 'home'
                   ? 'text-white'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -323,7 +323,7 @@ export default function App() {
                 />
               )}
               <Home size={16} className="shrink-0" />
-              <span className="tracking-wide">Beranda</span>
+              <span className="tracking-wide text-[8px] sm:text-xs">Beranda</span>
             </button>
 
             {/* Catalog tab button */}
@@ -333,7 +333,7 @@ export default function App() {
                 setActiveTab('catalog');
                 setSelectedMedicine(null);
               }}
-              className={`relative flex-1 sm:flex-none px-2 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
+              className={`relative flex-1 sm:flex-none px-0 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 cursor-pointer z-10 ${
                 activeTab === 'catalog'
                   ? 'text-white'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -347,7 +347,7 @@ export default function App() {
                 />
               )}
               <BookOpen size={16} className="shrink-0" />
-              <span className="tracking-wide">Katalog</span>
+              <span className="tracking-wide text-[8px] sm:text-xs">Katalog</span>
             </button>
 
             {/* Promo tab button */}
@@ -357,7 +357,7 @@ export default function App() {
                 setActiveTab('promo');
                 setSelectedMedicine(null);
               }}
-              className={`relative flex-1 sm:flex-none px-2 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
+              className={`relative flex-1 sm:flex-none px-0 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 cursor-pointer z-10 ${
                 activeTab === 'promo'
                   ? 'text-white'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -373,10 +373,10 @@ export default function App() {
               <div className="relative shrink-0 flex items-center justify-center">
                 <Gift size={16} />
                 {clientPromos.length > 0 && activeTab !== 'promo' && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-500 ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
+                  <span className="absolute -top-1 -right-1 w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-orange-500 ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
                 )}
               </div>
-              <span className="tracking-wide">Promo</span>
+              <span className="tracking-wide text-[8px] sm:text-xs">Promo</span>
             </button>
 
             {/* Profile tab button */}
@@ -386,7 +386,7 @@ export default function App() {
                 setActiveTab('profile');
                 setSelectedMedicine(null);
               }}
-              className={`relative flex-1 sm:flex-none px-2 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
+              className={`relative flex-1 sm:flex-none px-0 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 cursor-pointer z-10 ${
                 activeTab === 'profile'
                   ? 'text-white'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -400,7 +400,7 @@ export default function App() {
                 />
               )}
               <User size={16} className="shrink-0" />
-              <span className="tracking-wide">Profil</span>
+              <span className="tracking-wide text-[8px] sm:text-xs">Profil</span>
             </button>
 
             {/* Control tab button */}
@@ -410,7 +410,7 @@ export default function App() {
                 setActiveTab('control');
                 setSelectedMedicine(null);
               }}
-              className={`relative flex-1 sm:flex-none px-2 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2.5 cursor-pointer z-10 ${
+              className={`relative flex-1 sm:flex-none px-0 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 cursor-pointer z-10 ${
                 activeTab === 'control'
                   ? 'text-white'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
@@ -424,7 +424,7 @@ export default function App() {
                 />
               )}
               <Settings2 size={16} className="shrink-0" />
-              <span className="tracking-wide">Admin</span>
+              <span className="tracking-wide text-[8px] sm:text-xs">Admin</span>
             </button>
           </div>
         </div>

@@ -123,8 +123,8 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     if (!orderSearchTerm.trim()) return orders;
     const term = orderSearchTerm.toLowerCase();
     return orders.filter(order => 
-      order.customer.name.toLowerCase().includes(term) ||
-      order.customer.phone.toLowerCase().includes(term) ||
+      order.customerData?.name?.toLowerCase().includes(term) ||
+      order.customerData?.phone?.toLowerCase().includes(term) ||
       order.id.toLowerCase().includes(term)
     );
   }, [orders, orderSearchTerm]);
@@ -2938,9 +2938,9 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                               })}
                             </td>
                             <td className="py-3 px-4">
-                              <div className="font-bold text-slate-800">{order.customer.name}</div>
-                              <div className="text-slate-500 flex items-center gap-1 mt-0.5"><Phone size={10} /> {order.customer.phone}</div>
-                              <div className="text-slate-500 flex items-center gap-1 mt-0.5"><MapPin size={10} /> {order.customer.address}</div>
+                              <div className="font-bold text-slate-800">{order.customerData?.name}</div>
+                              <div className="text-slate-500 flex items-center gap-1 mt-0.5"><Phone size={10} /> {order.customerData?.phone}</div>
+                              <div className="text-slate-500 flex items-center gap-1 mt-0.5"><MapPin size={10} /> {order.customerData?.address}</div>
                             </td>
                             <td className="py-3 px-4">
                               <ul className="list-disc list-inside space-y-0.5">

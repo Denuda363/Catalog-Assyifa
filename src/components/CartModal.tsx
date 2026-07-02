@@ -135,8 +135,8 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
                   <ShoppingCart size={20} />
                 </div>
                 <div>
-                  <h2 className="font-black text-lg text-slate-800 dark:text-slate-100">Keranjang Belanja</h2>
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{totalItemCount} item terpilih</p>
+                  <h2 className="font-display font-bold text-lg text-slate-800 dark:text-slate-100">Keranjang Belanja</h2>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{totalItemCount} item terpilih</p>
                 </div>
               </div>
               <button

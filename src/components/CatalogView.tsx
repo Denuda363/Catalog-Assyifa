@@ -384,18 +384,18 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
       )}
 
       {/* Search & Filter Header Container */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800 space-y-4 sm:space-y-5 transition-colors">
-        <div className="flex flex-col md:flex-row gap-3 sm:gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200/60 dark:border-slate-800 space-y-3 sm:space-y-5 transition-colors">
+        <div className="flex flex-col md:flex-row gap-2.5 sm:gap-4">
           {/* Search bar input with custom id */}
           <div className="relative flex-1 group">
-            <span className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
-              <Search size={22} />
+            <span className="absolute inset-y-0 left-0 pl-3 sm:pl-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
+              <Search className="w-5 h-5 sm:w-[22px] sm:h-[22px]" />
             </span>
             <input
               id="catalog-search-input"
               type="text"
-              placeholder="Cari nama obat, kandungan aktif, atau khasiat..."
-              className="w-full pl-12 sm:pl-14 pr-12 py-3.5 sm:py-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm sm:text-base transition-all text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm"
+              placeholder="Cari obat..."
+              className="w-full pl-10 sm:pl-14 pr-10 sm:pr-12 py-3 sm:py-4 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm sm:text-base transition-all text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -403,53 +403,55 @@ export default function CatalogView({ medicines, settings, selectedMedicine, set
               <button
                 id="clear-search-btn"
                 onClick={() => setSearchTerm('')}
-                className="absolute inset-y-0 right-0 pr-4 sm:pr-5 flex items-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer transition-colors"
+                className="absolute inset-y-0 right-0 pr-3 sm:pr-5 flex items-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer transition-colors"
               >
-                <X size={20} />
+                <X size={18} className="sm:w-5 sm:h-5" />
               </button>
             )}
           </div>
 
-          {/* Quick sorting dropdown with custom id */}
-          <div className="w-full md:w-64 relative group">
-            <select
-              id="catalog-sort-select"
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value)}
-              className="w-full py-3.5 sm:py-4 px-4 pr-10 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm sm:text-base transition-all font-medium text-slate-700 dark:text-slate-300 cursor-pointer appearance-none shadow-sm"
-            >
-              <option value="name-asc">Urutkan: Nama (A - Z)</option>
-              <option value="name-desc">Urutkan: Nama (Z - A)</option>
-              <option value="price-asc">Urutkan: Harga Terendah</option>
-              <option value="price-desc">Urutkan: Harga Tertinggi</option>
-              <option value="updated-desc">Urutkan: Terakhir Diperbarui</option>
-            </select>
-            <span className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
-              <ChevronRight size={18} className="rotate-90" />
-            </span>
-          </div>
+          <div className="flex gap-2.5 sm:gap-4">
+            {/* Quick sorting dropdown with custom id */}
+            <div className="w-full relative group">
+              <select
+                id="catalog-sort-select"
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
+                className="w-full py-3 sm:py-4 px-3 sm:px-4 pr-8 sm:pr-10 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-[11px] sm:text-base transition-all font-medium text-slate-700 dark:text-slate-300 cursor-pointer appearance-none shadow-sm"
+              >
+                <option value="name-asc">A - Z</option>
+                <option value="name-desc">Z - A</option>
+                <option value="price-asc">Harga Terendah</option>
+                <option value="price-desc">Harga Tertinggi</option>
+                <option value="updated-desc">Terbaru</option>
+              </select>
+              <span className="absolute inset-y-0 right-0 pr-2 sm:pr-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
+                <ChevronRight size={14} className="sm:w-[18px] sm:h-[18px] rotate-90" />
+              </span>
+            </div>
 
-          {/* Display limit dropdown */}
-          <div className="w-full md:w-40 relative group">
-            <select
-              id="catalog-limit-select"
-              value={displayLimit}
-              onChange={(e) => {
-                const val = e.target.value;
-                setDisplayLimit(val === 'all' ? 'all' : parseInt(val));
-              }}
-              className="w-full py-3.5 sm:py-4 px-4 pr-10 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm sm:text-base transition-all font-medium text-slate-700 dark:text-slate-300 cursor-pointer appearance-none shadow-sm"
-            >
-              <option value={20}>20 produk</option>
-              <option value={30}>30 produk</option>
-              <option value={40}>40 produk</option>
-              <option value={50}>50 produk</option>
-              <option value={100}>100 produk</option>
-              <option value="all">Semua</option>
-            </select>
-            <span className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
-              <ChevronRight size={18} className="rotate-90" />
-            </span>
+            {/* Display limit dropdown */}
+            <div className="w-24 sm:w-40 shrink-0 relative group">
+              <select
+                id="catalog-limit-select"
+                value={displayLimit}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDisplayLimit(val === 'all' ? 'all' : parseInt(val));
+                }}
+                className="w-full py-3 sm:py-4 px-3 sm:px-4 pr-8 sm:pr-10 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-[11px] sm:text-base transition-all font-medium text-slate-700 dark:text-slate-300 cursor-pointer appearance-none shadow-sm"
+              >
+                <option value={20}>20 item</option>
+                <option value={30}>30 item</option>
+                <option value={40}>40 item</option>
+                <option value={50}>50 item</option>
+                <option value={100}>100 item</option>
+                <option value="all">Semua</option>
+              </select>
+              <span className="absolute inset-y-0 right-0 pr-2 sm:pr-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
+                <ChevronRight size={14} className="sm:w-[18px] sm:h-[18px] rotate-90" />
+              </span>
+            </div>
           </div>
         </div>
 
