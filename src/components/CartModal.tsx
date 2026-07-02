@@ -90,14 +90,10 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
     
     cart.forEach((item, index) => {
       const unitText = item.unit;
-      const subTotal = item.price * item.quantity;
       text += `${index + 1}. *${item.name}*\n`;
-      text += `   - Jumlah: ${item.quantity} ${unitText}\n`;
-      text += `   - Harga per satuan: ${formatRupiah(item.price)}\n`;
-      text += `   - Subtotal: ${formatRupiah(subTotal)}\n\n`;
+      text += `   - Jumlah: ${item.quantity} ${unitText}\n\n`;
     });
 
-    text += `*Total Pembayaran: ${formatRupiah(totalPrice)}*\n\n`;
     text += `Apakah pesanan saya bisa diproses? Terima kasih.`;
 
     const encodedText = encodeURIComponent(text);
