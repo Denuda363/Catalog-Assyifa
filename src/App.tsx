@@ -38,6 +38,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'catalog' | 'promo' | 'profile' | 'control'>('home');
+  const [isAdminVisible, setIsAdminVisible] = useState(false);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [promos, setPromos] = useState<Promo[]>([]);
   const [settings, setSettings] = useState<Settings>({ adminPin: '12345', whatsappNumber: '6281234567890' });
@@ -404,28 +405,30 @@ export default function App() {
             </button>
 
             {/* Control tab button */}
-            <button
-              id="tab-btn-control"
-              onClick={() => {
-                setActiveTab('control');
-                setSelectedMedicine(null);
-              }}
-              className={`relative flex-1 sm:flex-none px-0 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 cursor-pointer z-10 ${
-                activeTab === 'control'
-                  ? 'text-white'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-            >
-              {activeTab === 'control' && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute inset-0 bg-gradient-to-r from-slate-700 to-slate-900 dark:from-slate-600 dark:to-slate-800 rounded-xl shadow-md -z-10"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                />
-              )}
-              <Settings2 size={16} className="shrink-0" />
-              <span className="tracking-wide text-[8px] sm:text-xs">Admin</span>
-            </button>
+            {isAdminVisible && (
+              <button
+                id="tab-btn-control"
+                onClick={() => {
+                  setActiveTab('control');
+                  setSelectedMedicine(null);
+                }}
+                className={`relative flex-1 sm:flex-none px-0 sm:px-6 py-3 rounded-xl text-[9px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2.5 cursor-pointer z-10 ${
+                  activeTab === 'control'
+                    ? 'text-white'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                {activeTab === 'control' && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute inset-0 bg-gradient-to-r from-slate-700 to-slate-900 dark:from-slate-600 dark:to-slate-800 rounded-xl shadow-md -z-10"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <Settings2 size={16} className="shrink-0" />
+                <span className="tracking-wide text-[8px] sm:text-xs">Admin</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -530,9 +533,17 @@ export default function App() {
             <div className="text-white font-bold text-sm">Kontak Pelayanan Resmi</div>
             <p className="leading-relaxed font-light">{settings.pharmacyAddress || 'Jl. Raya Cideres-Kadipaten No. 45, Cideres, Majalengka, Jawa Barat.'}</p>
             <p>WhatsApp: <span className="text-blue-400 font-semibold font-mono">+{settings.whatsappNumber}</span></p>
-            <div className="inline-flex items-center gap-1 text-[10px] bg-slate-900 px-3 py-1 rounded border border-slate-700/80 mt-2 text-blue-400">
-              <ShieldCheck size={11} className="shrink-0" /> Terkoneksi Room Control Terproteksi
-            </div>
+            <button 
+              onClick={() => {
+                setIsAdminVisible(!isAdminVisible);
+                if (isAdminVisible && activeTab === 'control') {
+                  setActiveTab('home');
+                }
+              }}
+              className="inline-flex items-center gap-1 text-[10px] bg-slate-900 px-3 py-1 rounded border border-slate-700/80 mt-2 text-blue-400 cursor-pointer hover:bg-slate-800 transition-all"
+            >
+              <ShieldCheck size={11} className="shrink-0" /> {isAdminVisible ? 'Sembunyikan Tab Admin' : 'Tampilkan Tab Admin'}
+            </button>
           </div>
         </div>
 
