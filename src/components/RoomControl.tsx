@@ -193,6 +193,8 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
   const [bgPattern, setBgPattern] = useState<'dots'|'grid'|'crosses'|'none'>(settings.bgPattern as any || 'none');
   const [bgImageUrl, setBgImageUrl] = useState(settings.bgImageUrl || '');
   const [homeTheme, setHomeTheme] = useState(settings.homeTheme || 'default');
+  const [autoRotateTheme, setAutoRotateTheme] = useState(settings.autoRotateTheme || false);
+  const [autoRotateInterval, setAutoRotateInterval] = useState(settings.autoRotateInterval || 1);
   
   const [settingsStatus, setSettingsStatus] = useState({ success: false, message: '' });
   const [isResetting, setIsResetting] = useState(false);
@@ -210,6 +212,8 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     if (settings.bgPattern) setBgPattern(settings.bgPattern as any);
     if (settings.bgImageUrl) setBgImageUrl(settings.bgImageUrl);
     if (settings.homeTheme) setHomeTheme(settings.homeTheme);
+    if (settings.autoRotateTheme !== undefined) setAutoRotateTheme(settings.autoRotateTheme);
+    if (settings.autoRotateInterval !== undefined) setAutoRotateInterval(settings.autoRotateInterval);
   }, [settings]);
 
   // JSON Import state
@@ -610,7 +614,9 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       bgColor: bgColor,
       bgPattern: bgPattern,
       bgImageUrl: bgImageUrl,
-      homeTheme: homeTheme as any
+      homeTheme: homeTheme as any,
+      autoRotateTheme,
+      autoRotateInterval
     };
 
     await saveSettingsObj(updatedSettings);
@@ -969,7 +975,9 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       bgColor: parsed.settings.bgColor || '',
       bgPattern: parsed.settings.bgPattern || '',
       bgImageUrl: parsed.settings.bgImageUrl || '',
-      homeTheme: parsed.settings.homeTheme || 'default'
+      homeTheme: parsed.settings.homeTheme || 'default',
+      autoRotateTheme: parsed.settings.autoRotateTheme || false,
+      autoRotateInterval: parsed.settings.autoRotateInterval || 1
     };
     successItems.push({ type: 'Pengaturan', name: 'Profil & Konfigurasi Apotek', detail: 'Settings' });
 
@@ -2664,7 +2672,32 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                           <option value="elegant">Elegan Gelap (Elegant)</option>
                           <option value="playful">Ceria (Playful)</option>
                         </select>
-                        <p className="text-[9px] text-slate-400 mt-1">Ubah tampilan pahlawan (hero section) di beranda setiap hari jika diinginkan.</p>
+                        <p className="text-[9px] text-slate-400 mt-1">Ubah tampilan pahlawan (hero section) di beranda.</p>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Rotasi Tema Otomatis:</label>
+                        <div className="flex items-center gap-2 mt-2">
+                          <input
+                            type="checkbox"
+                            checked={autoRotateTheme}
+                            onChange={(e) => setAutoRotateTheme(e.target.checked)}
+                            className="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500 focus:ring-2"
+                          />
+                          <span className="text-xs font-medium text-slate-700">Aktifkan rotasi tema otomatis</span>
+                        </div>
+                        {autoRotateTheme && (
+                          <div className="mt-2 space-y-1">
+                            <label className="text-[10px] text-slate-500">Interval Rotasi (Menit):</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={autoRotateInterval}
+                              onChange={(e) => setAutoRotateInterval(Number(e.target.value))}
+                              className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -62,6 +62,8 @@ export interface Settings {
   bgPattern?: string; // pattern type
   bgImageUrl?: string; // base64 data URL of the uploaded background image
   homeTheme?: 'default' | 'ocean' | 'nature' | 'sunset' | 'elegant' | 'playful';
+  autoRotateTheme?: boolean;
+  autoRotateInterval?: number; // in minutes
 }
 
 export interface ActionLog {

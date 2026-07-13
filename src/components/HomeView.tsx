@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Pill, Activity, Stethoscope, ArrowRight, ShieldCheck, Clock, Truck, Star, Sparkles, HeartPulse } from 'lucide-react';
 import { Medicine, Settings } from '../types';
 
@@ -10,7 +10,35 @@ interface HomeViewProps {
 }
 
 export default function HomeView({ onNavigate, medicines, settings }: HomeViewProps) {
-  const theme = settings?.homeTheme || 'default';
+  const defaultTheme = settings?.homeTheme || 'default';
+  const [activeTheme, setActiveTheme] = useState(defaultTheme);
+
+  useEffect(() => {
+    if (!settings?.autoRotateTheme) {
+      setActiveTheme(defaultTheme);
+      return;
+    }
+
+    const themes: Array<'default' | 'ocean' | 'nature' | 'sunset' | 'elegant' | 'playful'> = ['default', 'ocean', 'nature', 'sunset', 'elegant', 'playful'];
+    
+    const intervalMinutes = settings.autoRotateInterval || 1;
+    const intervalMs = intervalMinutes * 60 * 1000;
+    
+    // Check if current active theme is in themes
+    if (!themes.includes(activeTheme as any)) {
+      setActiveTheme('default');
+    }
+
+    const intervalId = setInterval(() => {
+      setActiveTheme(prev => {
+        const currentIndex = themes.indexOf(prev as any);
+        const nextIndex = (currentIndex + 1) % themes.length;
+        return themes[nextIndex];
+      });
+    }, intervalMs);
+
+    return () => clearInterval(intervalId);
+  }, [settings?.autoRotateTheme, settings?.autoRotateInterval, defaultTheme]);
 
   // Define themes
   const themeStyles = {
@@ -70,7 +98,7 @@ export default function HomeView({ onNavigate, medicines, settings }: HomeViewPr
     }
   };
 
-  const currentTheme = themeStyles[theme] || themeStyles.default;
+  const currentTheme = themeStyles[activeTheme as keyof typeof themeStyles] || themeStyles.default;
 
   return (
     <div className="space-y-8 sm:space-y-12 pb-12">
@@ -79,9 +107,41 @@ export default function HomeView({ onNavigate, medicines, settings }: HomeViewPr
         <div className={`absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 ${currentTheme.accent1} rounded-full blur-3xl pointer-events-none transition-colors duration-700`}></div>
         <div className={`absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 ${currentTheme.accent2} rounded-full blur-2xl pointer-events-none transition-colors duration-700`}></div>
         
+        {/* Animated Particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              className={`absolute w-12 h-12 rounded-full ${currentTheme.accent1} backdrop-blur-3xl`}
+              initial={{
+                x: Math.random() * 400 - 200,
+                y: Math.random() * 400 - 200,
+                scale: Math.random() * 0.5 + 0.5,
+                opacity: 0
+              }}
+              animate={{
+                x: Math.random() * 600 - 300,
+                y: Math.random() * 600 - 300,
+                scale: Math.random() * 1 + 0.5,
+                opacity: [0, 0.4, 0]
+              }}
+              transition={{
+                duration: Math.random() * 5 + 5,
+                repeat: Infinity,
+                repeatType: "reverse",
+                ease: "easeInOut",
+              }}
+              style={{
+                left: `${20 + i * 15}%`,
+                top: `${20 + (i % 3) * 20}%`
+              }}
+            />
+          ))}
+        </div>
+
         <div className="relative z-10 max-w-2xl">
           <motion.div
-            key={theme}
+            key={activeTheme}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.05 }}
