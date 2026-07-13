@@ -443,6 +443,7 @@ export default function App() {
               <HomeView 
                 onNavigate={setActiveTab}
                 medicines={clientMedicines}
+                settings={settings}
               />
             </motion.div>
           )}

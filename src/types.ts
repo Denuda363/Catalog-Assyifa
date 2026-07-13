@@ -61,6 +61,7 @@ export interface Settings {
   bgColor?: string; // Tailwind class like bg-slate-50, bg-sky-50, etc. Or custom color code
   bgPattern?: string; // pattern type
   bgImageUrl?: string; // base64 data URL of the uploaded background image
+  homeTheme?: 'default' | 'ocean' | 'nature' | 'sunset' | 'elegant' | 'playful';
 }
 
 export interface ActionLog {

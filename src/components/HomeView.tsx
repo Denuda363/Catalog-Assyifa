@@ -1,22 +1,93 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Pill, Activity, Stethoscope, ArrowRight, ShieldCheck, Clock, Truck, Star } from 'lucide-react';
-import { Medicine } from '../types';
+import { Pill, Activity, Stethoscope, ArrowRight, ShieldCheck, Clock, Truck, Star, Sparkles, HeartPulse } from 'lucide-react';
+import { Medicine, Settings } from '../types';
 
 interface HomeViewProps {
   onNavigate: (tab: 'catalog' | 'promo') => void;
   medicines: Medicine[];
+  settings?: Settings;
 }
 
-export default function HomeView({ onNavigate, medicines }: HomeViewProps) {
+export default function HomeView({ onNavigate, medicines, settings }: HomeViewProps) {
+  const theme = settings?.homeTheme || 'default';
+
+  // Define themes
+  const themeStyles = {
+    default: {
+      bg: "bg-gradient-to-br from-blue-600 to-indigo-700 shadow-blue-900/20",
+      accent1: "bg-white/10",
+      accent2: "bg-blue-400/20",
+      textHighlight: "text-blue-200",
+      btnPrimary: "bg-white text-blue-700 hover:bg-blue-50 shadow-blue-900/20",
+      btnSecondary: "bg-blue-500/20 hover:bg-blue-500/40 border-white/20 text-white",
+      icon: <Stethoscope size={24} className="text-blue-200 mb-4" />
+    },
+    ocean: {
+      bg: "bg-gradient-to-br from-cyan-600 to-teal-700 shadow-teal-900/20",
+      accent1: "bg-white/10",
+      accent2: "bg-cyan-400/20",
+      textHighlight: "text-cyan-200",
+      btnPrimary: "bg-white text-teal-700 hover:bg-teal-50 shadow-teal-900/20",
+      btnSecondary: "bg-teal-500/20 hover:bg-teal-500/40 border-white/20 text-white",
+      icon: <Activity size={24} className="text-cyan-200 mb-4" />
+    },
+    nature: {
+      bg: "bg-gradient-to-br from-emerald-600 to-green-700 shadow-green-900/20",
+      accent1: "bg-white/10",
+      accent2: "bg-emerald-400/20",
+      textHighlight: "text-emerald-200",
+      btnPrimary: "bg-white text-green-700 hover:bg-green-50 shadow-green-900/20",
+      btnSecondary: "bg-green-500/20 hover:bg-green-500/40 border-white/20 text-white",
+      icon: <Star size={24} className="text-emerald-200 mb-4" />
+    },
+    sunset: {
+      bg: "bg-gradient-to-br from-orange-500 to-rose-600 shadow-rose-900/20",
+      accent1: "bg-white/10",
+      accent2: "bg-orange-400/20",
+      textHighlight: "text-orange-200",
+      btnPrimary: "bg-white text-rose-700 hover:bg-rose-50 shadow-rose-900/20",
+      btnSecondary: "bg-rose-500/20 hover:bg-rose-500/40 border-white/20 text-white",
+      icon: <HeartPulse size={24} className="text-orange-200 mb-4" />
+    },
+    elegant: {
+      bg: "bg-gradient-to-br from-slate-800 to-slate-950 shadow-slate-900/40 border border-slate-700",
+      accent1: "bg-white/5",
+      accent2: "bg-slate-700/30",
+      textHighlight: "text-slate-300",
+      btnPrimary: "bg-white text-slate-900 hover:bg-slate-200 shadow-black/20",
+      btnSecondary: "bg-slate-700/50 hover:bg-slate-600/50 border-slate-600 text-white",
+      icon: <Sparkles size={24} className="text-slate-300 mb-4" />
+    },
+    playful: {
+      bg: "bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500 shadow-pink-900/20",
+      accent1: "bg-white/20",
+      accent2: "bg-white/10",
+      textHighlight: "text-pink-100",
+      btnPrimary: "bg-white text-fuchsia-700 hover:bg-fuchsia-50 shadow-pink-900/20",
+      btnSecondary: "bg-white/20 hover:bg-white/30 border-white/30 text-white",
+      icon: <Star size={24} className="text-pink-100 mb-4" />
+    }
+  };
+
+  const currentTheme = themeStyles[theme] || themeStyles.default;
+
   return (
     <div className="space-y-8 sm:space-y-12 pb-12">
       {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-3xl sm:rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-indigo-700 p-6 sm:p-12 lg:p-16 shadow-2xl shadow-blue-900/20">
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-blue-400/20 rounded-full blur-2xl pointer-events-none"></div>
+      <section className={`relative overflow-hidden rounded-3xl sm:rounded-[2.5rem] ${currentTheme.bg} p-6 sm:p-12 lg:p-16 shadow-2xl transition-colors duration-700`}>
+        <div className={`absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 ${currentTheme.accent1} rounded-full blur-3xl pointer-events-none transition-colors duration-700`}></div>
+        <div className={`absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 ${currentTheme.accent2} rounded-full blur-2xl pointer-events-none transition-colors duration-700`}></div>
         
         <div className="relative z-10 max-w-2xl">
+          <motion.div
+            key={theme}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.05 }}
+          >
+            {currentTheme.icon}
+          </motion.div>
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -24,14 +95,14 @@ export default function HomeView({ onNavigate, medicines }: HomeViewProps) {
             className="text-3xl sm:text-5xl lg:text-6xl font-display font-bold tracking-tight text-white leading-[1.1] mb-3 sm:mb-6"
           >
             Kesehatan Anda <br className="hidden sm:block" />
-            <span className="text-blue-200">Adalah Prioritas Kami</span>
+            <span className={`${currentTheme.textHighlight} transition-colors duration-700`}>Adalah Prioritas Kami</span>
           </motion.h1>
           
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-blue-100 text-sm sm:text-xl font-medium mb-6 sm:mb-10 max-w-xl leading-relaxed"
+            className="text-white/90 text-sm sm:text-xl font-medium mb-6 sm:mb-10 max-w-xl leading-relaxed"
           >
             Apotek Assyifa Farma Cideres siap melayani kebutuhan obat dan alat kesehatan Anda dengan cepat, akurat, dan terpercaya.
           </motion.p>
@@ -44,14 +115,14 @@ export default function HomeView({ onNavigate, medicines }: HomeViewProps) {
           >
             <button 
               onClick={() => onNavigate('catalog')}
-              className="bg-white text-blue-700 hover:bg-blue-50 px-6 py-3.5 sm:px-8 sm:py-4 rounded-full font-bold tracking-tight text-sm sm:text-lg transition-all active:scale-95 shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2"
+              className={`${currentTheme.btnPrimary} px-6 py-3.5 sm:px-8 sm:py-4 rounded-full font-bold tracking-tight text-sm sm:text-lg transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2`}
             >
               <Pill size={20} className="sm:w-[22px] sm:h-[22px]" />
               Cari Obat
             </button>
             <button 
               onClick={() => onNavigate('promo')}
-              className="bg-blue-500/20 hover:bg-blue-500/40 backdrop-blur-md border border-white/20 text-white px-6 py-3.5 sm:px-8 sm:py-4 rounded-full font-bold tracking-tight text-sm sm:text-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+              className={`${currentTheme.btnSecondary} backdrop-blur-md border px-6 py-3.5 sm:px-8 sm:py-4 rounded-full font-bold tracking-tight text-sm sm:text-lg transition-all active:scale-95 flex items-center justify-center gap-2`}
             >
               Lihat Promo <ArrowRight size={18} className="sm:w-[20px] sm:h-[20px]" />
             </button>

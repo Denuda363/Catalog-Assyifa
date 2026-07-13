@@ -192,6 +192,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
   const [bgColor, setBgColor] = useState(settings.bgColor || '#f8fafc');
   const [bgPattern, setBgPattern] = useState<'dots'|'grid'|'crosses'|'none'>(settings.bgPattern as any || 'none');
   const [bgImageUrl, setBgImageUrl] = useState(settings.bgImageUrl || '');
+  const [homeTheme, setHomeTheme] = useState(settings.homeTheme || 'default');
   
   const [settingsStatus, setSettingsStatus] = useState({ success: false, message: '' });
   const [isResetting, setIsResetting] = useState(false);
@@ -208,6 +209,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     if (settings.bgColor) setBgColor(settings.bgColor);
     if (settings.bgPattern) setBgPattern(settings.bgPattern as any);
     if (settings.bgImageUrl) setBgImageUrl(settings.bgImageUrl);
+    if (settings.homeTheme) setHomeTheme(settings.homeTheme);
   }, [settings]);
 
   // JSON Import state
@@ -607,7 +609,8 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       bgType: bgType,
       bgColor: bgColor,
       bgPattern: bgPattern,
-      bgImageUrl: bgImageUrl
+      bgImageUrl: bgImageUrl,
+      homeTheme: homeTheme as any
     };
 
     await saveSettingsObj(updatedSettings);
@@ -965,7 +968,8 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       bgType: parsed.settings.bgType || 'pattern',
       bgColor: parsed.settings.bgColor || '',
       bgPattern: parsed.settings.bgPattern || '',
-      bgImageUrl: parsed.settings.bgImageUrl || ''
+      bgImageUrl: parsed.settings.bgImageUrl || '',
+      homeTheme: parsed.settings.homeTheme || 'default'
     };
     successItems.push({ type: 'Pengaturan', name: 'Profil & Konfigurasi Apotek', detail: 'Settings' });
 
@@ -2636,6 +2640,31 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                           onChange={(e) => setGreetingPromo(e.target.value)}
                           className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-slate-200/60 my-4"></div>
+
+                  {/* Kustomisasi Tampilan Beranda */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-blue-800 uppercase tracking-widest">Tema Beranda (Home Page)</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">Pilih Tema Beranda:</label>
+                        <select
+                          value={homeTheme}
+                          onChange={(e) => setHomeTheme(e.target.value)}
+                          className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500"
+                        >
+                          <option value="default">Biru Klasik (Default)</option>
+                          <option value="ocean">Samudra Biru (Ocean)</option>
+                          <option value="nature">Hijau Segar (Nature)</option>
+                          <option value="sunset">Senja Hangat (Sunset)</option>
+                          <option value="elegant">Elegan Gelap (Elegant)</option>
+                          <option value="playful">Ceria (Playful)</option>
+                        </select>
+                        <p className="text-[9px] text-slate-400 mt-1">Ubah tampilan pahlawan (hero section) di beranda setiap hari jika diinginkan.</p>
                       </div>
                     </div>
                   </div>
