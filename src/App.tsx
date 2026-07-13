@@ -239,26 +239,63 @@ export default function App() {
         <div className="max-w-6xl mx-auto flex flex-row justify-between items-center gap-3 sm:gap-6">
             <div className="flex flex-row items-center gap-2.5 sm:gap-4 text-left">
             {/* Visual medical icon/avatar */}
-            {settings.pharmacyLogo ? (
-              <img 
-                src={settings.pharmacyLogo} 
-                alt="Logo Apotek" 
-                className="w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl object-cover shadow-md border-2 border-white dark:border-slate-800 shrink-0" 
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl sm:rounded-2xl flex items-center justify-center text-white font-black text-xl sm:text-2xl shrink-0 shadow-lg shadow-blue-600/30 border-2 border-white dark:border-slate-800 relative overflow-hidden">
-                <span className="relative z-10">A</span>
-                <div className="absolute -bottom-2 -right-2 w-6 h-6 sm:w-8 sm:h-8 bg-white/20 rounded-full blur-sm"></div>
-                <div className="absolute -top-1 -left-1 w-4 h-4 sm:w-6 sm:h-6 bg-white/20 rounded-full blur-sm"></div>
-              </div>
-            )}
-            <div className="space-y-0.5 flex flex-col justify-center">
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+              whileHover={{ scale: 1.05, rotate: 5 }}
+            >
+              <motion.div
+                animate={{ y: [0, -4, 0] }}
+                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+              >
+                {settings.pharmacyLogo ? (
+                  <img 
+                    src={settings.pharmacyLogo} 
+                    alt="Logo Apotek" 
+                    className="w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl object-cover shadow-md border-2 border-white dark:border-slate-800 shrink-0" 
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl sm:rounded-2xl flex items-center justify-center text-white font-black text-xl sm:text-2xl shrink-0 shadow-lg shadow-blue-600/30 border-2 border-white dark:border-slate-800 relative overflow-hidden">
+                    <span className="relative z-10">A</span>
+                    <motion.div 
+                      className="absolute -bottom-2 -right-2 w-6 h-6 sm:w-8 sm:h-8 bg-white/30 rounded-full blur-sm"
+                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                      transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                    />
+                    <motion.div 
+                      className="absolute -top-1 -left-1 w-4 h-4 sm:w-6 sm:h-6 bg-white/30 rounded-full blur-sm"
+                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                      transition={{ repeat: Infinity, duration: 3, ease: "easeInOut", delay: 1 }}
+                    />
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1, type: "spring", stiffness: 100 }}
+              className="space-y-0.5 flex flex-col justify-center"
+            >
               <h1 className="font-black text-xl sm:text-3xl md:text-4xl tracking-tight flex flex-col sm:flex-row items-start sm:items-baseline justify-center sm:justify-start sm:gap-2 leading-none uppercase">
-                <span className="font-medium tracking-widest text-slate-400 dark:text-slate-500 text-[8px] sm:text-sm md:text-base mb-0.5 sm:mb-0">APOTEK</span>
-                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-500 text-transparent bg-clip-text drop-shadow-sm pb-0.5 sm:pb-1">
+                <motion.span 
+                  className="font-medium tracking-widest text-slate-400 dark:text-slate-500 text-[8px] sm:text-sm md:text-base mb-0.5 sm:mb-0"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  APOTEK
+                </motion.span>
+                <motion.span 
+                  className="bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-500 text-transparent bg-clip-text drop-shadow-sm pb-0.5 sm:pb-1 bg-[length:200%_auto]"
+                  animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+                  whileHover={{ scale: 1.02 }}
+                >
                   ASSYIFA FARMA
-                </span>
+                </motion.span>
               </h1>
               <div className="flex items-center justify-start gap-2">
                 <span className="w-4 h-0.5 bg-blue-500 rounded-full hidden sm:block"></span>
@@ -266,7 +303,7 @@ export default function App() {
                   Cideres <span className="text-blue-500 mx-1">•</span> <span className="hidden sm:inline">Professional Health Services</span><span className="sm:hidden">Health Services</span>
                 </p>
               </div>
-            </div>
+            </motion.div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
