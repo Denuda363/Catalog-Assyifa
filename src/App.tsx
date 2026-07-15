@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   Moon,
   Sun,
+  Sparkles,
   ShoppingCart,
   Home,
   User
@@ -46,19 +47,40 @@ export default function App() {
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark';
+  
+  const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'auto'>(() => {
+    return (localStorage.getItem('themeMode') as 'light' | 'dark' | 'auto') || (localStorage.getItem('theme') === 'dark' ? 'dark' : 'light');
   });
+  const [activeTheme, setActiveTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
-    if (isDarkMode) {
+    localStorage.setItem('themeMode', themeMode);
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (themeMode === 'auto') {
+      const updateAutoTheme = () => {
+        setActiveTheme(new Date().getMinutes() % 2 === 0 ? 'light' : 'dark');
+      };
+      updateAutoTheme();
+      interval = setInterval(updateAutoTheme, 1000);
+    } else {
+      setActiveTheme(themeMode);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [themeMode]);
+
+  useEffect(() => {
+    if (activeTheme === 'dark') {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
     }
-  }, [isDarkMode]);
+  }, [activeTheme]);
 
   // Initialize and load data on component mount
   useEffect(() => {
@@ -309,11 +331,13 @@ export default function App() {
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Dark mode toggle */}
             <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
+              onClick={() => setThemeMode(prev => prev === 'light' ? 'dark' : prev === 'dark' ? 'auto' : 'light')}
               className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-sm cursor-pointer"
-              title="Toggle Tema"
+              title={themeMode === 'light' ? "Tema Terang (Klik untuk Gelap)" : themeMode === 'dark' ? "Tema Gelap (Klik untuk Otomatis)" : "Tema Otomatis (Klik untuk Terang)"}
             >
-              {isDarkMode ? <Sun size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Moon size={16} className="sm:w-[18px] sm:h-[18px]" />}
+              {themeMode === 'light' ? <Sun size={16} className="sm:w-[18px] sm:h-[18px]" /> : 
+               themeMode === 'dark' ? <Moon size={16} className="sm:w-[18px] sm:h-[18px]" /> : 
+               <Sparkles size={16} className="sm:w-[18px] sm:h-[18px] text-yellow-500" />}
             </button>
 
             {/* Quick WA Info callout */}
