@@ -72,10 +72,21 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Promo Header banner */}
-      <div className="bg-gradient-to-r from-rose-500 to-orange-500 rounded-2xl p-4 sm:p-6 text-white shadow-md relative overflow-hidden">
-        <div className="absolute -right-6 -bottom-6 w-36 h-36 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
-        <div className="absolute -left-6 -top-6 w-24 h-24 bg-white/10 rounded-full blur-lg pointer-events-none"></div>
-
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-rose-500 to-orange-500 rounded-2xl p-4 sm:p-6 text-white shadow-md relative overflow-hidden"
+      >
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5], rotate: [0, 90, 0] }}
+          transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
+          className="absolute -right-6 -bottom-6 w-36 h-36 bg-white/20 rounded-full blur-xl pointer-events-none"
+        />
+        <motion.div 
+          animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5], rotate: [0, -90, 0] }}
+          transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay: 1 }}
+          className="absolute -left-6 -top-6 w-24 h-24 bg-white/20 rounded-full blur-lg pointer-events-none"
+        />
         <div className="relative max-w-lg space-y-2">
           <span className="bg-white/20 text-white font-bold text-[9px] sm:text-[10px] tracking-wider px-2.5 py-1 rounded-full uppercase border border-white/10 inline-flex items-center gap-1.5 animate-pulse">
             <Gift size={11} /> Hubungi Lewat WA Untuk Klaim
@@ -85,7 +96,7 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
             Dapatkan diskon eksklusif dan potongan harga khusus untuk obat-obatan esensial, suplemen imunitas, dan nutrisi keluarga di Apotek Assyifa Farma Cideres.
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* Customizable Promo greeting/welcome banner */}
       {settings.greetingPromo && (
@@ -117,6 +128,8 @@ export default function PromoView({ promos, medicines, settings, onSelectMedicin
                   id={`promo-card-${p.id}`}
                   initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -5, scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
                 transition={{ duration: 0.3, delay: idx * 0.05 }}
                 className={`bg-white dark:bg-slate-900 rounded-xl border ${
                   inactive ? 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50' : 'border-rose-100 dark:border-rose-900 hover:border-rose-300 dark:hover:border-rose-700'

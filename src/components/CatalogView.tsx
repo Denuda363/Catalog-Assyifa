@@ -80,9 +80,11 @@ function MedicineCard({ med, idx, getClassificationStyles, setSelectedMedicine }
       layout
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -6, scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.25, delay: idx * 0.02 }}
       id={`medicine-card-${med.id}`}
-      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col overflow-hidden group cursor-pointer shadow-sm"
+      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-xl transition-colors flex flex-col overflow-hidden group cursor-pointer shadow-sm relative"
       onClick={() => setSelectedMedicine(med)}
     >
       {/* Visual Category Header Band / Image Preview */}
@@ -100,7 +102,9 @@ function MedicineCard({ med, idx, getClassificationStyles, setSelectedMedicine }
         </div>
       ) : (
         <div className="h-20 sm:h-24 w-full bg-slate-50 dark:bg-slate-950 border-b border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-slate-400 p-2 shrink-0 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-900/20 transition-colors">
-          <Activity size={18} className="text-slate-300 dark:text-slate-600 group-hover:text-blue-400 group-hover:animate-pulse transition-colors" />
+          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 8, ease: "linear" }}>
+            <Activity size={18} className="text-slate-300 dark:text-slate-600 group-hover:text-blue-400 transition-colors" />
+          </motion.div>
           <span className="text-[9px] font-semibold text-slate-400 tracking-wide mt-1.5 select-none">No Image</span>
         </div>
       )}

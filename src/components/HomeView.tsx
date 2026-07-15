@@ -173,19 +173,32 @@ export default function HomeView({ onNavigate, medicines, settings }: HomeViewPr
             transition={{ delay: 0.3 }}
             className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4"
           >
-            <button 
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              animate={{ y: [0, -5, 0] }}
+              transition={{ y: { repeat: Infinity, duration: 2, ease: "easeInOut" } }}
               onClick={() => onNavigate('catalog')}
               className={`${currentTheme.btnPrimary} px-6 py-3.5 sm:px-8 sm:py-4 rounded-full font-bold tracking-tight text-sm sm:text-lg transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2`}
             >
-              <Pill size={20} className="sm:w-[22px] sm:h-[22px]" />
+              <motion.div animate={{ rotate: [0, 20, 0] }} transition={{ repeat: Infinity, duration: 2, repeatDelay: 1 }}>
+                <Pill size={20} className="sm:w-[22px] sm:h-[22px]" />
+              </motion.div>
               Cari Obat
-            </button>
-            <button 
+            </motion.button>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              animate={{ y: [0, -5, 0] }}
+              transition={{ y: { repeat: Infinity, duration: 2.5, ease: "easeInOut", delay: 0.2 } }}
               onClick={() => onNavigate('promo')}
-              className={`${currentTheme.btnSecondary} backdrop-blur-md border px-6 py-3.5 sm:px-8 sm:py-4 rounded-full font-bold tracking-tight text-sm sm:text-lg transition-all active:scale-95 flex items-center justify-center gap-2`}
+              className={`${currentTheme.btnSecondary} backdrop-blur-md border px-6 py-3.5 sm:px-8 sm:py-4 rounded-full font-bold tracking-tight text-sm sm:text-lg transition-all active:scale-95 flex items-center justify-center gap-2 group`}
             >
-              Lihat Promo <ArrowRight size={18} className="sm:w-[20px] sm:h-[20px]" />
-            </button>
+              Lihat Promo 
+              <motion.div animate={{ x: [0, 5, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>
+                <ArrowRight size={18} className="sm:w-[20px] sm:h-[20px]" />
+              </motion.div>
+            </motion.button>
           </motion.div>
         </div>
       </section>

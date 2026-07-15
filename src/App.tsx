@@ -236,6 +236,51 @@ export default function App() {
       style={bgStyle}
     >
       
+      {/* Animated Background Blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <motion.div
+          animate={{
+            x: [0, 50, 0],
+            y: [0, -50, 0],
+            scale: [1, 1.1, 1],
+            rotate: [0, 45, 0]
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute -top-20 -left-20 w-96 h-96 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            x: [0, -60, 0],
+            y: [0, 60, 0],
+            scale: [1, 1.2, 1],
+            rotate: [0, -45, 0]
+          }}
+          transition={{
+            duration: 18,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute top-1/3 -right-20 w-80 h-80 bg-teal-400/20 dark:bg-teal-600/10 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            x: [0, 30, -30, 0],
+            y: [0, 30, 0],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute -bottom-40 left-1/4 w-[30rem] h-[30rem] bg-indigo-400/20 dark:bg-indigo-600/10 rounded-full blur-3xl"
+        />
+      </div>
+
       {/* Top micro announcement bar */}
       <div className="bg-slate-900 dark:bg-slate-950 text-white/90 text-xs py-2 px-6 shrink-0 shadow-xs border-b border-slate-800 dark:border-slate-900 transition-colors">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2 text-center text-[10px] md:text-xs">
@@ -341,10 +386,20 @@ export default function App() {
             </button>
 
             {/* Quick WA Info callout */}
-            <div className="flex items-center justify-center gap-2 sm:gap-3 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 p-1.5 sm:p-3 rounded-lg sm:rounded-xl shadow-2xs cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/40 transition-colors"
+            <motion.div 
+                 whileHover={{ scale: 1.05 }}
+                 whileTap={{ scale: 0.95 }}
+                 animate={{ y: [0, -3, 0] }}
+                 transition={{ y: { repeat: Infinity, duration: 3, ease: "easeInOut" } }}
+                 className="flex items-center justify-center gap-2 sm:gap-3 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 p-1.5 sm:p-3 rounded-lg sm:rounded-xl shadow-2xs cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/40 transition-colors"
                  onClick={() => window.open(`https://wa.me/${settings.whatsappNumber}`, '_blank')}>
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-400 shrink-0">
-                <PhoneCall size={14} />
+                <motion.div
+                  animate={{ rotate: [0, -15, 15, -15, 15, 0], scale: [1, 1.2, 1] }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut", repeatDelay: 1 }}
+                >
+                  <PhoneCall size={14} />
+                </motion.div>
               </div>
               <div className="text-left text-xs hidden sm:block">
                 <p className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider text-[8px] sm:text-[9px]">Layanan Konsultasi Resep</p>
@@ -352,7 +407,7 @@ export default function App() {
                   +{settings.whatsappNumber}
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </header>
@@ -617,17 +672,29 @@ export default function App() {
 
       {/* Floating Cart Button */}
       {cart.length > 0 && (
-        <button
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1, y: [0, -8, 0] }}
+          transition={{ 
+            scale: { type: "spring", stiffness: 200, damping: 15 },
+            y: { repeat: Infinity, duration: 2, ease: "easeInOut" }
+          }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
           onClick={() => setIsCartOpen(true)}
-          className="fixed bottom-24 right-4 sm:bottom-8 sm:right-8 z-50 bg-blue-600 text-white p-3 sm:p-4 rounded-full shadow-xl shadow-blue-600/30 hover:bg-blue-700 transition-all active:scale-95 group"
+          className="fixed bottom-24 right-4 sm:bottom-8 sm:right-8 z-50 bg-blue-600 text-white p-3 sm:p-4 rounded-full shadow-xl shadow-blue-600/30 group"
         >
           <div className="relative">
             <ShoppingCart size={24} className="group-hover:scale-110 transition-transform" />
-            <span className="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900">
+            <motion.span 
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+              className="absolute -top-2 -right-2 bg-rose-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white dark:border-slate-900"
+            >
               {cart.reduce((sum, item) => sum + item.quantity, 0)}
-            </span>
+            </motion.span>
           </div>
-        </button>
+        </motion.button>
       )}
 
       {/* Cart Modal */}
