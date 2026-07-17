@@ -572,7 +572,7 @@ export default function App() {
             >
               <CatalogView 
                 medicines={clientMedicines} 
-                settings={settings} 
+                settings={settings}
                 selectedMedicine={selectedMedicine}
                 setSelectedMedicine={setSelectedMedicine}
                 cart={cart}
@@ -704,6 +704,7 @@ export default function App() {
         cart={cart}
         setCart={setCart}
         settings={settings}
+        onNavigate={(tab) => { setIsCartOpen(false); setActiveTab(tab); }}
       />
     </div>
   );

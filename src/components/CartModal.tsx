@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ShoppingCart, Trash2, Plus, Minus, MessageCircle, User, MapPin, Phone, FileText, Truck, Package } from 'lucide-react';
+import { X, ShoppingCart, Trash2, Plus, Minus, MessageCircle, User, MapPin, Phone, FileText, Truck, Package, ChevronDown, ChevronUp } from 'lucide-react';
 import { CartItem, Settings, Order, CustomerData } from '../types';
 import { formatRupiah } from '../utils';
 import { saveOrder } from '../firebaseUtils';
@@ -11,9 +11,11 @@ interface CartModalProps {
   cart: CartItem[];
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
   settings: Settings;
+  onNavigate: (tab: string) => void;
 }
 
-export default function CartModal({ isOpen, onClose, cart, setCart, settings }: CartModalProps) {
+export default function CartModal({ isOpen, onClose, cart, setCart, settings, onNavigate }: CartModalProps) {
+  const [isCustomerDataOpen, setIsCustomerDataOpen] = useState(false);
   const [customer, setCustomer] = useState<CustomerData>({
     name: '',
     address: '',
@@ -59,7 +61,7 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
   const totalItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  const isFormValid = customer.name.trim() !== '' && customer.phone.trim() !== '' && (customer.deliveryOption === 'diambil' || customer.address.trim() !== '');
+  const isFormValid = customer.name?.trim() !== '' && customer.phone?.trim() !== '' && (customer.deliveryOption === 'diambil' || (customer.address && customer.address.trim() !== ''));
 
   const handleCheckout = async () => {
     if (cart.length === 0 || !isFormValid) return;
@@ -87,8 +89,8 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
     // Format WhatsApp message
     let text = `Halo Apotek Assyifa Farma Cideres, saya ingin memesan:\n\n`;
     text += `*Data Pelanggan:*\n`;
-    text += `- Nama: ${customer.name}\n`;
-    text += `- No HP: ${customer.phone}\n`;
+    text += `- Nama: ${customer.name.trim() !== '' ? customer.name : 'Tidak disertakan'}\n`;
+    text += `- No HP: ${customer.phone.trim() !== '' ? customer.phone : 'Tidak disertakan'}\n`;
     text += `- Metode: ${customer.deliveryOption === 'diambil' ? 'Diambil di Apotek' : 'Dikirim ke Alamat'}\n`;
     if (customer.deliveryOption === 'dikirim') {
       text += `- Alamat: ${customer.address}\n`;
@@ -134,70 +136,108 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="fixed inset-y-0 right-0 w-full sm:w-[450px] bg-white dark:bg-slate-900 shadow-2xl z-[9999] flex flex-col border-l border-slate-200 dark:border-slate-800"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                  <ShoppingCart size={20} />
+            {/* Modern Header */}
+            <div className="relative p-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shrink-0">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 dark:bg-blue-900/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <ShoppingCart size={22} />
+                  </div>
+                  <div>
+                    <h2 className="font-display font-black text-xl text-slate-800 dark:text-slate-100 tracking-tight">Keranjang</h2>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">{totalItemCount} item</span>
+                      <span className="text-xs text-slate-500">Tersimpan</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="font-display font-bold text-lg text-slate-800 dark:text-slate-100">Keranjang Belanja</h2>
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{totalItemCount} item terpilih</p>
-                </div>
+                <button
+                  onClick={onClose}
+                  className="w-10 h-10 flex items-center justify-center bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-full transition-all hover:rotate-90"
+                >
+                  <X size={20} />
+                </button>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full transition-colors"
-              >
-                <X size={20} />
-              </button>
             </div>
 
             {/* Cart Items */}
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {cart.length > 0 && (
-                <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm space-y-3 mb-6">
-                  <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2">
-                    <User size={16} className="text-blue-500" /> Data Pemesan
-                  </h3>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm mb-6 flex flex-col gap-3">
+                  <button 
+                    onClick={() => setIsCustomerDataOpen(!isCustomerDataOpen)}
+                    className="flex items-center justify-between w-full font-bold text-sm text-slate-800 dark:text-slate-100"
+                  >
+                    <div className="flex items-center gap-2">
+                      <User size={16} className="text-blue-500" /> 
+                      Data Pemesan (Opsional)
+                    </div>
+                    {isCustomerDataOpen ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+                  </button>
                   
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Nama Lengkap</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <User size={14} className="text-slate-400" />
-                      </div>
-                      <input 
-                        type="text" 
-                        value={customer.name}
-                        onChange={(e) => setCustomer({...customer, name: e.target.value})}
-                        className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100"
-                        placeholder="Contoh: Budi Santoso"
-                      />
-                    </div>
-                  </div>
+                  <AnimatePresence>
+                    {isCustomerDataOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden space-y-3 pt-2"
+                      >
+                        <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/50 space-y-3">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Nama Lengkap</span>
+                            <div className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                              {customer.name || <span className="text-slate-400 italic">Belum diisi</span>}
+                            </div>
+                          </div>
 
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">No WhatsApp</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Phone size={14} className="text-slate-400" />
-                      </div>
-                      <input 
-                        type="tel" 
-                        value={customer.phone}
-                        onChange={(e) => setCustomer({...customer, phone: e.target.value})}
-                        className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100"
-                        placeholder="Contoh: 08123456789"
-                      />
-                    </div>
-                  </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">No WhatsApp</span>
+                            <div className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                              {customer.phone || <span className="text-slate-400 italic">Belum diisi</span>}
+                            </div>
+                          </div>
 
-                  <div>
+                          <AnimatePresence>
+                            {customer.deliveryOption === 'dikirim' && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5 mt-3">Alamat Pengiriman</span>
+                                <div className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                                  {customer.address || <span className="text-slate-400 italic">Belum diisi</span>}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                        
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onNavigate('profile');
+                          }}
+                          className="w-full py-2 bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-900/50 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          Ubah Data di Profil
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-700/50">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Metode Pengiriman</label>
                     <div className="grid grid-cols-2 gap-3">
                       <button
-                        onClick={() => setCustomer({ ...customer, deliveryOption: 'dikirim' })}
+                        onClick={() => {
+                          setCustomer({ ...customer, deliveryOption: 'dikirim' });
+                          setIsCustomerDataOpen(true);
+                        }}
                         className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-sm font-semibold transition-colors ${
                           customer.deliveryOption === 'dikirim' 
                             ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/40 dark:border-blue-500 dark:text-blue-300' 
@@ -221,31 +261,6 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
                     </div>
                   </div>
 
-                  <AnimatePresence>
-                    {customer.deliveryOption === 'dikirim' && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Alamat Pengiriman</label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 pt-2.5 pointer-events-none">
-                            <MapPin size={14} className="text-slate-400" />
-                          </div>
-                          <textarea 
-                            value={customer.address}
-                            onChange={(e) => setCustomer({...customer, address: e.target.value})}
-                            rows={2}
-                            className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 resize-none"
-                            placeholder="Alamat lengkap..."
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
                   <div>
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Catatan (Opsional)</label>
                     <div className="relative">
@@ -265,20 +280,34 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
               )}
 
               {cart.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center space-y-3 opacity-60">
-                  <ShoppingCart size={48} className="text-slate-400" />
-                  <p className="text-sm font-semibold text-slate-500">Keranjang masih kosong</p>
+                <div className="flex flex-col items-center justify-center h-full text-center space-y-4 pt-10">
+                  <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center">
+                    <ShoppingCart size={40} className="text-slate-300 dark:text-slate-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-700 dark:text-slate-200 text-lg">Keranjang Kosong</h3>
+                    <p className="text-sm text-slate-500 mt-1 max-w-[200px] mx-auto">Silahkan pilih produk dari katalog untuk ditambahkan.</p>
+                  </div>
                 </div>
               ) : (
                 cart.map(item => (
-                  <div key={item.id} className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm relative group">
-                    <div className="pr-8">
-                      <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm mb-1">{item.name}</h3>
-                      <div className="text-[10px] font-semibold text-slate-500 bg-slate-200/60 dark:bg-slate-700 inline-block px-2 py-0.5 rounded mb-2">
-                        {item.category}
+                  <div key={item.id} className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-sm hover:border-blue-200 dark:hover:border-blue-900/50 hover:shadow-md transition-all relative group flex flex-col">
+                    <div className="flex gap-4">
+                      {/* Left icon / placeholder */}
+                      <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center border border-slate-100 dark:border-slate-700/50 shrink-0">
+                        <Package size={24} className="text-slate-300 dark:text-slate-600" />
                       </div>
-                      <div className="text-rose-600 dark:text-rose-400 font-black text-base mb-3">
-                        {formatRupiah(item.price)} <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">/ {item.unit}</span>
+                      
+                      <div className="flex-1 pr-6">
+                        <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm mb-1 leading-snug">{item.name}</h3>
+                        <div className="flex items-center flex-wrap gap-1.5 mb-2">
+                          <span className="text-[9px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded uppercase tracking-wide">
+                            {item.category}
+                          </span>
+                        </div>
+                        <div className="text-rose-600 dark:text-rose-400 font-black text-sm">
+                          {formatRupiah(item.price)} <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">/ {item.unit}</span>
+                        </div>
                       </div>
                     </div>
                     
@@ -289,14 +318,14 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
                       <Trash2 size={16} />
                     </button>
 
-                    <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-700 pt-3">
-                      <div className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                        Subtotal: <span className="text-slate-800 dark:text-slate-100">{formatRupiah(item.price * item.quantity)}</span>
+                    <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3 mt-3">
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        Subtotal: <span className="text-slate-800 dark:text-slate-200 ml-1 text-sm">{formatRupiah(item.price * item.quantity)}</span>
                       </div>
-                      <div className="flex items-center gap-3 bg-white dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
+                      <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800/80 rounded-xl p-1 border border-slate-200/80 dark:border-slate-700">
                         <button 
                           onClick={() => handleUpdateQuantity(item.id, -1)}
-                          className="w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded text-slate-600 dark:text-slate-300 transition-colors"
+                          className="w-7 h-7 flex items-center justify-center bg-white hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg text-slate-600 dark:text-slate-300 transition-colors shadow-xs"
                         >
                           <Minus size={14} />
                         </button>
@@ -334,14 +363,21 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
             </div>
 
             {/* Footer / Checkout */}
-            <div className="p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
-              <div className="flex items-center justify-between mb-4">
+            <div className="p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 space-y-4">
+              <div className="flex items-center justify-between">
                 <span className="font-bold text-slate-600 dark:text-slate-400">Total Harga</span>
                 <span className="font-black text-2xl text-slate-800 dark:text-slate-100">{formatRupiah(totalPrice)}</span>
               </div>
+              
+              {!isFormValid && cart.length > 0 && (
+                <div className="text-rose-500 bg-rose-50 dark:bg-rose-900/20 text-[10px] font-bold p-2 rounded-lg text-center border border-rose-100 dark:border-rose-900/50">
+                  Lengkapi Data Pemesan (Profil & Metode) untuk melanjutkan.
+                </div>
+              )}
+              
               <button
                 onClick={handleCheckout}
-                disabled={cart.length === 0}
+                disabled={cart.length === 0 || !isFormValid}
                 className="w-full py-4 rounded-xl font-black flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed bg-green-500 hover:bg-green-600 text-white shadow-green-500/30"
               >
                 <MessageCircle size={20} />
