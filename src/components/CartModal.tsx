@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ShoppingCart, Trash2, Plus, Minus, MessageCircle, User, MapPin, Phone } from 'lucide-react';
+import { X, ShoppingCart, Trash2, Plus, Minus, MessageCircle, User, MapPin, Phone, FileText, Truck, Package } from 'lucide-react';
 import { CartItem, Settings, Order, CustomerData } from '../types';
 import { formatRupiah } from '../utils';
 import { saveOrder } from '../firebaseUtils';
@@ -17,7 +17,9 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
   const [customer, setCustomer] = useState<CustomerData>({
     name: '',
     address: '',
-    phone: ''
+    phone: '',
+    notes: '',
+    deliveryOption: 'dikirim'
   });
 
   React.useEffect(() => {
@@ -29,7 +31,9 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
           setCustomer(prev => ({
             name: prev.name || parsed.name || '',
             address: prev.address || parsed.address || '',
-            phone: prev.phone || parsed.phone || ''
+            phone: prev.phone || parsed.phone || '',
+            notes: prev.notes || parsed.notes || '',
+            deliveryOption: parsed.deliveryOption || 'dikirim'
           }));
         } catch (e) {
           // ignore
@@ -55,7 +59,7 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
   const totalItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  const isFormValid = customer.name.trim() !== '' && customer.address.trim() !== '' && customer.phone.trim() !== '';
+  const isFormValid = customer.name.trim() !== '' && customer.phone.trim() !== '' && (customer.deliveryOption === 'diambil' || customer.address.trim() !== '');
 
   const handleCheckout = async () => {
     if (cart.length === 0 || !isFormValid) return;
@@ -85,8 +89,14 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
     text += `*Data Pelanggan:*\n`;
     text += `- Nama: ${customer.name}\n`;
     text += `- No HP: ${customer.phone}\n`;
-    text += `- Alamat: ${customer.address}\n\n`;
-    text += `*Detail Pesanan:*\n`;
+    text += `- Metode: ${customer.deliveryOption === 'diambil' ? 'Diambil di Apotek' : 'Dikirim ke Alamat'}\n`;
+    if (customer.deliveryOption === 'dikirim') {
+      text += `- Alamat: ${customer.address}\n`;
+    }
+    if (customer.notes && customer.notes.trim() !== '') {
+      text += `- Catatan: ${customer.notes}\n`;
+    }
+    text += `\n*Detail Pesanan:*\n`;
     
     cart.forEach((item, index) => {
       const unitText = item.unit;
@@ -102,7 +112,7 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
 
     // Clear cart and form after checkout
     setCart([]);
-    setCustomer({ name: '', address: '', phone: '' });
+    setCustomer({ name: '', address: '', phone: '', notes: '', deliveryOption: 'dikirim' });
     onClose();
   };
 
@@ -184,17 +194,70 @@ export default function CartModal({ isOpen, onClose, cart, setCart, settings }: 
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Alamat Pengiriman / Penjemputan</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Metode Pengiriman</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setCustomer({ ...customer, deliveryOption: 'dikirim' })}
+                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-sm font-semibold transition-colors ${
+                          customer.deliveryOption === 'dikirim' 
+                            ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/40 dark:border-blue-500 dark:text-blue-300' 
+                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <Truck size={16} />
+                        Dikirim
+                      </button>
+                      <button
+                        onClick={() => setCustomer({ ...customer, deliveryOption: 'diambil' })}
+                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border text-sm font-semibold transition-colors ${
+                          customer.deliveryOption === 'diambil' 
+                            ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/40 dark:border-blue-500 dark:text-blue-300' 
+                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <Package size={16} />
+                        Diambil
+                      </button>
+                    </div>
+                  </div>
+
+                  <AnimatePresence>
+                    {customer.deliveryOption === 'dikirim' && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Alamat Pengiriman</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 pt-2.5 pointer-events-none">
+                            <MapPin size={14} className="text-slate-400" />
+                          </div>
+                          <textarea 
+                            value={customer.address}
+                            onChange={(e) => setCustomer({...customer, address: e.target.value})}
+                            rows={2}
+                            className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 resize-none"
+                            placeholder="Alamat lengkap..."
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Catatan (Opsional)</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 pt-2.5 pointer-events-none">
-                        <MapPin size={14} className="text-slate-400" />
+                        <FileText size={14} className="text-slate-400" />
                       </div>
                       <textarea 
-                        value={customer.address}
-                        onChange={(e) => setCustomer({...customer, address: e.target.value})}
+                        value={customer.notes}
+                        onChange={(e) => setCustomer({...customer, notes: e.target.value})}
                         rows={2}
                         className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 resize-none"
-                        placeholder="Alamat lengkap..."
+                        placeholder="Tambahkan catatan untuk pesanan..."
                       />
                     </div>
                   </div>

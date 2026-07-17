@@ -88,6 +88,8 @@ export interface CustomerData {
   name: string;
   address: string;
   phone: string;
+  notes?: string;
+  deliveryOption?: 'dikirim' | 'diambil';
 }
 
 export interface Order {
