@@ -21,8 +21,9 @@ export default function HomeView({ onNavigate, medicines, settings }: HomeViewPr
 
     const themes: Array<'default' | 'ocean' | 'nature' | 'sunset' | 'elegant' | 'playful'> = ['default', 'ocean', 'nature', 'sunset', 'elegant', 'playful'];
     
-    const intervalMinutes = settings.autoRotateInterval || 1;
-    const intervalMs = intervalMinutes * 60 * 1000;
+    const intervalValue = settings.autoRotateInterval || 1;
+    const isSeconds = settings.autoRotateUnit === 'seconds';
+    const intervalMs = isSeconds ? intervalValue * 1000 : intervalValue * 60 * 1000;
     
     // Check if current active theme is in themes
     if (!themes.includes(activeTheme as any)) {
@@ -38,7 +39,7 @@ export default function HomeView({ onNavigate, medicines, settings }: HomeViewPr
     }, intervalMs);
 
     return () => clearInterval(intervalId);
-  }, [settings?.autoRotateTheme, settings?.autoRotateInterval, defaultTheme]);
+  }, [settings?.autoRotateTheme, settings?.autoRotateInterval, settings?.autoRotateUnit, defaultTheme]);
 
   // Define themes
   const themeStyles = {

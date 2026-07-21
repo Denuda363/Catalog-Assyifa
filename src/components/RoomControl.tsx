@@ -264,6 +264,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
   const [homeTheme, setHomeTheme] = useState(settings.homeTheme || 'default');
   const [autoRotateTheme, setAutoRotateTheme] = useState(settings.autoRotateTheme || false);
   const [autoRotateInterval, setAutoRotateInterval] = useState(settings.autoRotateInterval || 1);
+  const [autoRotateUnit, setAutoRotateUnit] = useState<'minutes' | 'seconds'>(settings.autoRotateUnit || 'minutes');
   
   const [settingsStatus, setSettingsStatus] = useState({ success: false, message: '' });
   const [isResetting, setIsResetting] = useState(false);
@@ -283,6 +284,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     if (settings.homeTheme) setHomeTheme(settings.homeTheme);
     if (settings.autoRotateTheme !== undefined) setAutoRotateTheme(settings.autoRotateTheme);
     if (settings.autoRotateInterval !== undefined) setAutoRotateInterval(settings.autoRotateInterval);
+    if (settings.autoRotateUnit !== undefined) setAutoRotateUnit(settings.autoRotateUnit);
   }, [settings]);
 
   // JSON Import state
@@ -693,7 +695,8 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       bgImageUrl: bgImageUrl,
       homeTheme: homeTheme as any,
       autoRotateTheme,
-      autoRotateInterval
+      autoRotateInterval,
+      autoRotateUnit
     };
 
     await saveSettingsObj(updatedSettings);
@@ -1054,7 +1057,8 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       bgImageUrl: parsed.settings.bgImageUrl || '',
       homeTheme: parsed.settings.homeTheme || 'default',
       autoRotateTheme: parsed.settings.autoRotateTheme || false,
-      autoRotateInterval: parsed.settings.autoRotateInterval || 1
+      autoRotateInterval: parsed.settings.autoRotateInterval || 1,
+      autoRotateUnit: parsed.settings.autoRotateUnit || 'minutes'
     };
     successItems.push({ type: 'Pengaturan', name: 'Profil & Konfigurasi Apotek', detail: 'Settings' });
 
@@ -2818,15 +2822,25 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                           <span className="text-xs font-medium text-slate-700">Aktifkan rotasi tema otomatis</span>
                         </div>
                         {autoRotateTheme && (
-                          <div className="mt-2 space-y-1">
-                            <label className="text-[10px] text-slate-500">Interval Rotasi (Menit):</label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={autoRotateInterval}
-                              onChange={(e) => setAutoRotateInterval(Number(e.target.value))}
-                              className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500"
-                            />
+                          <div className="mt-2 space-y-2">
+                            <label className="text-[10px] text-slate-500">Interval Rotasi:</label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="1"
+                                value={autoRotateInterval}
+                                onChange={(e) => setAutoRotateInterval(Number(e.target.value))}
+                                className="w-1/2 px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500"
+                              />
+                              <select
+                                value={autoRotateUnit}
+                                onChange={(e) => setAutoRotateUnit(e.target.value as 'minutes' | 'seconds')}
+                                className="w-1/2 px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500"
+                              >
+                                <option value="minutes">Menit</option>
+                                <option value="seconds">Detik</option>
+                              </select>
+                            </div>
                           </div>
                         )}
                       </div>
