@@ -577,6 +577,7 @@ export default function App() {
                 setSelectedMedicine={setSelectedMedicine}
                 cart={cart}
                 setCart={setCart}
+                isAdminVisible={isAdminVisible}
               />
             </motion.div>
           )}
