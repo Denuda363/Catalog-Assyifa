@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { User, MapPin, Phone, Save, ShieldCheck } from 'lucide-react';
+import { User, MapPin, Phone, Save, ShieldCheck, Undo2, Redo2 } from 'lucide-react';
 import { CustomerData } from '../types';
 
 export default function ProfileView() {
@@ -9,24 +9,65 @@ export default function ProfileView() {
     address: '',
     phone: ''
   });
+
+  const [history, setHistory] = useState<CustomerData[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('customerData');
     if (saved) {
       try {
-        setCustomer(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setCustomer(parsed);
+        setHistory([parsed]);
+        setHistoryIndex(0);
       } catch (e) {
         // ignore
+        setHistory([{ name: '', address: '', phone: '' }]);
+        setHistoryIndex(0);
       }
+    } else {
+      setHistory([{ name: '', address: '', phone: '' }]);
+      setHistoryIndex(0);
     }
   }, []);
+
+  const handleUpdate = (field: keyof CustomerData, value: string) => {
+    const newData = { ...customer, [field]: value };
+    setCustomer(newData);
+    
+    // update history
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(newData);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      const prevIndex = historyIndex - 1;
+      setHistoryIndex(prevIndex);
+      setCustomer(history[prevIndex]);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      const nextIndex = historyIndex + 1;
+      setHistoryIndex(nextIndex);
+      setCustomer(history[nextIndex]);
+    }
+  };
 
   const handleSave = () => {
     localStorage.setItem('customerData', JSON.stringify(customer));
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
   };
+
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < history.length - 1;
 
   return (
     <div className="space-y-4 sm:space-y-6 max-w-2xl mx-auto pb-12">
@@ -36,9 +77,35 @@ export default function ProfileView() {
           <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 backdrop-blur-md rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/30 text-white shrink-0">
             <User size={24} className="sm:w-[32px] sm:h-[32px]" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl sm:text-3xl font-display font-bold tracking-tight text-white">Profil Pelanggan</h1>
             <p className="text-blue-100 font-medium mt-0.5 sm:mt-1 text-xs sm:text-sm leading-snug">Lengkapi data untuk kemudahan saat pesanan</p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleUndo}
+              disabled={!canUndo}
+              className={`p-2 rounded-xl backdrop-blur-md transition-all ${
+                canUndo 
+                  ? 'bg-white/20 hover:bg-white/30 text-white cursor-pointer' 
+                  : 'bg-white/5 text-white/30 cursor-not-allowed'
+              }`}
+              title="Undo"
+            >
+              <Undo2 size={20} />
+            </button>
+            <button
+              onClick={handleRedo}
+              disabled={!canRedo}
+              className={`p-2 rounded-xl backdrop-blur-md transition-all ${
+                canRedo 
+                  ? 'bg-white/20 hover:bg-white/30 text-white cursor-pointer' 
+                  : 'bg-white/5 text-white/30 cursor-not-allowed'
+              }`}
+              title="Redo"
+            >
+              <Redo2 size={20} />
+            </button>
           </div>
         </div>
       </div>
@@ -53,7 +120,7 @@ export default function ProfileView() {
             <input 
               type="text" 
               value={customer.name}
-              onChange={(e) => setCustomer({...customer, name: e.target.value})}
+              onChange={(e) => handleUpdate('name', e.target.value)}
               className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 font-medium transition-all"
               placeholder="Contoh: Budi Santoso"
             />
@@ -69,7 +136,7 @@ export default function ProfileView() {
             <input 
               type="tel" 
               value={customer.phone}
-              onChange={(e) => setCustomer({...customer, phone: e.target.value})}
+              onChange={(e) => handleUpdate('phone', e.target.value)}
               className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 font-medium transition-all"
               placeholder="Contoh: 08123456789"
             />
@@ -84,7 +151,7 @@ export default function ProfileView() {
             </div>
             <textarea 
               value={customer.address}
-              onChange={(e) => setCustomer({...customer, address: e.target.value})}
+              onChange={(e) => handleUpdate('address', e.target.value)}
               rows={3}
               className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 dark:text-slate-100 font-medium resize-none transition-all"
               placeholder="Detail alamat pengiriman atau penjemputan..."

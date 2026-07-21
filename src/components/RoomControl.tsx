@@ -20,7 +20,7 @@ import {
   resetAllDataToDefault
 } from '../firebaseUtils';
 import { 
-  Lock, 
+  Lock, Undo2, Redo2, 
   ShieldAlert, 
   Plus, 
   Edit2, 
@@ -68,6 +68,8 @@ export interface ImportPreviewData {
   jsonDataToSave?: {
     medicines?: Medicine[];
     promos?: Promo[];
+
+
     settings?: Settings;
   };
   excelMedicinesToSave?: Medicine[];
@@ -75,6 +77,71 @@ export interface ImportPreviewData {
 
 // Hidden SUPER USER PIN
 const SUPER_USER_PIN = '151219';
+function useHistoryState<T>(initialState: T) {
+  const [histories, setHistories] = useState<Record<string, { history: T[], index: number }>>({});
+  const [currentKey, setCurrentKey] = useState<string>('default');
+
+  const history = histories[currentKey]?.history || [initialState];
+  const historyIndex = histories[currentKey]?.index ?? 0;
+
+  const setState = (newState: T | ((prev: T) => T)) => {
+    setHistories((prevHistories) => {
+      const currentHistoryObj = prevHistories[currentKey] || { history: [initialState], index: 0 };
+      const currentHistory = currentHistoryObj.history;
+      const currentIndex = currentHistoryObj.index;
+      
+      const currentState = currentHistory[currentIndex];
+      const nextState = typeof newState === 'function' ? (newState as any)(currentState) : newState;
+      
+      const newHistory = currentHistory.slice(0, currentIndex + 1);
+      newHistory.push(nextState);
+      
+      return {
+        ...prevHistories,
+        [currentKey]: { history: newHistory, index: newHistory.length - 1 }
+      };
+    });
+  };
+
+  const undo = () => {
+    setHistories((prev) => {
+      const currentObj = prev[currentKey];
+      if (currentObj && currentObj.index > 0) {
+        return { ...prev, [currentKey]: { ...currentObj, index: currentObj.index - 1 } };
+      }
+      return prev;
+    });
+  };
+
+  const redo = () => {
+    setHistories((prev) => {
+      const currentObj = prev[currentKey];
+      if (currentObj && currentObj.index < currentObj.history.length - 1) {
+        return { ...prev, [currentKey]: { ...currentObj, index: currentObj.index + 1 } };
+      }
+      return prev;
+    });
+  };
+  
+  const reset = (state: T, key: string = 'default') => {
+    setCurrentKey(key);
+    setHistories((prev) => {
+      if (!prev[key]) {
+        return { ...prev, [key]: { history: [state], index: 0 } };
+      }
+      return prev;
+    });
+  };
+
+  const forceReset = (state: T, key: string = 'default') => {
+    setCurrentKey(key);
+    setHistories((prev) => ({ ...prev, [key]: { history: [state], index: 0 } }));
+  };
+
+  return [history[historyIndex], setState, undo, redo, historyIndex > 0, historyIndex < history.length - 1, reset, forceReset] as const;
+}
+
+
 
 export default function RoomControl({ medicines, promos, settings, orders, onDataChange }: RoomControlProps) {
   const [pinInput, setPinInput] = useState('');
@@ -141,7 +208,8 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
   // Form states - Medicines
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
   const [isAddingMedicine, setIsAddingMedicine] = useState(false);
-  const [medicineForm, setMedicineForm] = useState({
+  const [isSavedMedicine, setIsSavedMedicine] = useState(false);
+  const [medicineForm, setMedicineForm, undoMedicineForm, redoMedicineForm, canUndoMedicineForm, canRedoMedicineForm, resetMedicineHistory, forceResetMedicineHistory] = useHistoryState({
     name: '',
     category: 'Obat Bebas',
     activeIngredient: '',
@@ -164,9 +232,10 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
   // Form states - Promos
   const [editingPromo, setEditingPromo] = useState<Promo | null>(null);
   const [isAddingPromo, setIsAddingPromo] = useState(false);
+  const [isSavedPromo, setIsSavedPromo] = useState(false);
   const [searchBundlingQuery, setSearchBundlingQuery] = useState('');
   const [searchSpecificQuery, setSearchSpecificQuery] = useState('');
-  const [promoForm, setPromoForm] = useState({
+  const [promoForm, setPromoForm, undoPromoForm, redoPromoForm, canUndoPromoForm, canRedoPromoForm, resetPromoHistory, forceResetPromoHistory] = useHistoryState({
     title: '',
     description: '',
     medicineId: '',
@@ -364,15 +433,19 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
 
       await saveMedicine(newMed);
       await addLogObj('Ubah Obat', `Mengubah multi-harga/rincian obat: ${editingMedicine.name}`);
-      setEditingMedicine(null);
+      setEditingMedicine(newMed);
+      setIsSavedMedicine(true);
+      setTimeout(() => setIsSavedMedicine(false), 3000);
     }
-
-    // Reset Form
-    resetMedicineForm();
+    
+    if (isAddingMedicine) {
+      // Reset Form only if adding
+      resetMedicineForm();
+    }
   };
 
   const resetMedicineForm = () => {
-    setMedicineForm({
+    forceResetMedicineHistory({
       name: '',
       category: 'Obat Bebas',
       activeIngredient: '',
@@ -390,13 +463,13 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       baseUnit: 'Lembar',
       defaultUnit: '',
       multiUnits: []
-    });
+    }, 'new');
   };
 
   const handleEditMedicineClick = (med: Medicine) => {
     setEditingMedicine(med);
     setIsAddingMedicine(false);
-    setMedicineForm({
+    resetMedicineHistory({
       name: med.name,
       category: med.category,
       activeIngredient: med.activeIngredient,
@@ -414,7 +487,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       baseUnit: med.baseUnit || 'Lembar',
       defaultUnit: med.defaultUnit || '',
       multiUnits: med.multiUnits || []
-    });
+    }, med.id);
   };
 
   const handleDeleteMedicine = async (id: string, name: string) => {
@@ -477,16 +550,20 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
 
       await savePromo(updatedPromo);
       await addLogObj('Ubah Promo', `Mengubah rincian brosur promo: ${editingPromo.title}`);
-      setEditingPromo(null);
+      setEditingPromo(updatedPromo);
+      setIsSavedPromo(true);
+      setTimeout(() => setIsSavedPromo(false), 3000);
     }
-
-    resetPromoForm();
+    
+    if (isAddingPromo) {
+      resetPromoForm();
+    }
   };
 
   const resetPromoForm = () => {
     setSearchBundlingQuery('');
     setSearchSpecificQuery('');
-    setPromoForm({
+    forceResetPromoHistory({
       title: '',
       description: '',
       medicineId: '',
@@ -497,7 +574,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       bundledMedicineIds: [],
       bundledItems: [],
       bannerImageUrl: ''
-    });
+    }, 'new');
   };
 
   const handleEditPromoClick = (p: Promo) => {
@@ -505,7 +582,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     setIsAddingPromo(false);
     setSearchBundlingQuery('');
     setSearchSpecificQuery('');
-    setPromoForm({
+    resetPromoHistory({
       title: p.title,
       description: p.description,
       medicineId: p.medicineId || '',
@@ -516,7 +593,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       bundledMedicineIds: p.bundledMedicineIds || [],
       bundledItems: p.bundledItems || [],
       bannerImageUrl: p.bannerImageUrl || ''
-    });
+    }, p.id);
   };
 
   const handleDeletePromo = async (id: string, title: string) => {
@@ -1424,14 +1501,35 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                           <h4 className="font-extrabold text-sm text-blue-800 uppercase tracking-widest flex items-center gap-2">
                             {isAddingMedicine ? 'Tambah Data Obat Baru' : `Ubah Data: ${editingMedicine?.name}`}
                           </h4>
-                          <button
-                            id="cancel-med-form"
-                            type="button"
-                            onClick={() => { setIsAddingMedicine(false); setEditingMedicine(null); }}
-                            className="text-slate-400 hover:text-slate-600 bg-white hover:bg-slate-100 rounded-full p-1.5 transition-colors"
-                          >
-                            <X size={20} />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={undoMedicineForm}
+                              disabled={!canUndoMedicineForm}
+                              className={`p-1.5 rounded transition-colors ${canUndoMedicineForm ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' : 'text-slate-300 bg-slate-50 cursor-not-allowed'}`}
+                              title="Undo"
+                            >
+                              <Undo2 size={18} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={redoMedicineForm}
+                              disabled={!canRedoMedicineForm}
+                              className={`p-1.5 rounded transition-colors ${canRedoMedicineForm ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' : 'text-slate-300 bg-slate-50 cursor-not-allowed'}`}
+                              title="Redo"
+                            >
+                              <Redo2 size={18} />
+                            </button>
+                            <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                            <button
+                              id="cancel-med-form"
+                              type="button"
+                              onClick={() => { setIsAddingMedicine(false); setEditingMedicine(null); }}
+                              className="text-slate-400 hover:text-slate-600 bg-white hover:bg-slate-100 rounded-full p-1.5 transition-colors"
+                            >
+                              <X size={20} />
+                            </button>
+                          </div>
                         </div>
 
                         <div className="p-4 sm:p-5 max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
@@ -1844,9 +1942,15 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                           <button
                             id="submit-med-form-btn"
                             type="submit"
-                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-colors"
+                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-colors flex items-center gap-2"
                           >
-                            {isAddingMedicine ? 'Tambahkan Ke Katalog' : 'Simpan Perubahan'}
+                            {isSavedMedicine ? (
+                              <>
+                                <CheckCircle size={16} /> Tersimpan
+                              </>
+                            ) : (
+                              isAddingMedicine ? 'Tambahkan Ke Katalog' : 'Simpan Perubahan'
+                            )}
                           </button>
                         </div>
                       </form>
@@ -2062,14 +2166,35 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                           <h4 className="font-extrabold text-sm text-blue-800 uppercase tracking-widest flex items-center gap-2">
                             {isAddingPromo ? 'Tambahkan Brosur Promo Baru' : `Ubah Brosur: ${editingPromo?.title}`}
                           </h4>
-                          <button
-                            id="cancel-promo-form"
-                            type="button"
-                            onClick={() => { setIsAddingPromo(false); setEditingPromo(null); }}
-                            className="text-slate-400 hover:text-slate-600 bg-white hover:bg-slate-100 rounded-full p-1.5 transition-colors cursor-pointer"
-                          >
-                            <X size={20} />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={undoPromoForm}
+                              disabled={!canUndoPromoForm}
+                              className={`p-1.5 rounded transition-colors ${canUndoPromoForm ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' : 'text-slate-300 bg-slate-50 cursor-not-allowed'}`}
+                              title="Undo"
+                            >
+                              <Undo2 size={18} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={redoPromoForm}
+                              disabled={!canRedoPromoForm}
+                              className={`p-1.5 rounded transition-colors ${canRedoPromoForm ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' : 'text-slate-300 bg-slate-50 cursor-not-allowed'}`}
+                              title="Redo"
+                            >
+                              <Redo2 size={18} />
+                            </button>
+                            <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                            <button
+                              id="cancel-promo-form"
+                              type="button"
+                              onClick={() => { setIsAddingPromo(false); setEditingPromo(null); }}
+                              className="text-slate-400 hover:text-slate-600 bg-white hover:bg-slate-100 rounded-full p-1.5 transition-colors cursor-pointer"
+                            >
+                              <X size={20} />
+                            </button>
+                          </div>
                         </div>
 
                         <div className="p-4 sm:p-5 max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
@@ -2394,9 +2519,15 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                           <button
                             id="submit-promo-form-btn"
                             type="submit"
-                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-colors"
+                            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md transition-colors flex items-center gap-2"
                           >
-                            {isAddingPromo ? 'Tambahkan Banner' : 'Simpan Brosur'}
+                            {isSavedPromo ? (
+                              <>
+                                <CheckCircle size={16} /> Tersimpan
+                              </>
+                            ) : (
+                              isAddingPromo ? 'Tambahkan Banner' : 'Simpan Brosur'
+                            )}
                           </button>
                         </div>
                       </form>
