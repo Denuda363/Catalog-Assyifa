@@ -47,6 +47,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface RoomControlProps {
   medicines: Medicine[];
@@ -161,7 +163,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
   const [loginError, setLoginError] = useState('');
 
   // Control tabs
-  const [activeTab, setActiveTab] = useState<'medicines' | 'promos' | 'settings' | 'logs' | 'super' | 'orders'>('orders');
+  const [activeTab, setActiveTab] = useState<'medicines' | 'promos' | 'settings' | 'logs' | 'super' | 'orders' | 'divisions'>('orders');
 
   // Pagination and Search states
   const [medicinePage, setMedicinePage] = useState(1);
@@ -289,6 +291,48 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
 
   // JSON Import state
   const [importJson, setImportJson] = useState('');
+  const [newDivision, setNewDivision] = useState('');
+  const [editingDivisionIndex, setEditingDivisionIndex] = useState<number | null>(null);
+  const [editingDivisionName, setEditingDivisionName] = useState('');
+
+  const handleSaveDivision = async () => {
+    if (!newDivision.trim()) return;
+    const currentDivisions = settings.divisions || [];
+    if (currentDivisions.includes(newDivision.trim())) {
+      alert('Divisi sudah ada');
+      return;
+    }
+    const updatedSettings = { ...settings, divisions: [...currentDivisions, newDivision.trim()] };
+    await saveSettingsObj(updatedSettings);
+    await addLogObj('Tambah Divisi', `Divisi "${newDivision.trim()}" ditambahkan`);
+    setNewDivision('');
+  };
+
+  const handleUpdateDivision = async () => {
+    if (editingDivisionIndex === null || !editingDivisionName.trim()) return;
+    const currentDivisions = [...(settings.divisions || [])];
+    const oldName = currentDivisions[editingDivisionIndex];
+    if (currentDivisions.some((d, i) => i !== editingDivisionIndex && d === editingDivisionName.trim())) {
+      alert('Divisi dengan nama ini sudah ada');
+      return;
+    }
+    currentDivisions[editingDivisionIndex] = editingDivisionName.trim();
+    const updatedSettings = { ...settings, divisions: currentDivisions };
+    await saveSettingsObj(updatedSettings);
+    await addLogObj('Edit Divisi', `Divisi "${oldName}" diubah menjadi "${editingDivisionName.trim()}"`);
+    setEditingDivisionIndex(null);
+    setEditingDivisionName('');
+  };
+
+  const handleDeleteDivision = async (index: number) => {
+    if (!confirm('Hapus divisi ini?')) return;
+    const currentDivisions = [...(settings.divisions || [])];
+    const divName = currentDivisions[index];
+    currentDivisions.splice(index, 1);
+    const updatedSettings = { ...settings, divisions: currentDivisions };
+    await saveSettingsObj(updatedSettings);
+    await addLogObj('Hapus Divisi', `Divisi "${divName}" dihapus`);
+  };
   const [importStatus, setImportStatus] = useState({ success: false, message: '' });
 
   // PIN Keypad handlers
@@ -450,6 +494,8 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     forceResetMedicineHistory({
       name: '',
       category: 'Obat Bebas',
+      productGroup: '',
+      division: '',
       activeIngredient: '',
       price: 0,
       priceMb: 0,
@@ -910,6 +956,70 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
 
     reader.readAsBinaryString(file);
     e.target.value = ''; // clean input
+  };
+
+  
+  const handleExportMedicinesExcel = () => {
+    if (medicines.length === 0) {
+      alert("Tidak ada data obat untuk diekspor");
+      return;
+    }
+    
+    const data = medicines.map(m => ({
+      'ID': m.id,
+      'Nama Obat': m.name,
+      'Kategori/Golongan': m.category,
+      'Kelompok': m.productGroup || '-',
+      'Divisi': m.division || '-',
+      'Kandungan Aktif': m.activeIngredient || '-',
+      'Indikasi': m.indication || '-',
+      'Dosis/Aturan': m.dose || '-',
+      'Harga Medis': m.priceMedis || m.price || 0,
+      'Harga MB': m.priceMb || 0,
+      'Harga Khusus': m.priceKhusus || 0,
+      'Harga HK OTC': m.priceHkOtc || 0,
+      'Status': m.stockStatus || 'Tersedia'
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Data Obat");
+    XLSX.writeFile(wb, `Data_Obat_Assyifa_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    
+    addLogObj('Export Excel', 'Mengekspor data obat ke format Excel').catch(console.error);
+  };
+
+  const handleExportMedicinesPdf = () => {
+    if (medicines.length === 0) {
+      alert("Tidak ada data obat untuk diekspor");
+      return;
+    }
+    
+    const doc = new jsPDF();
+    doc.text("Data Obat Apotek Assyifa", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, 14, 22);
+    
+    const tableData = medicines.map(m => [
+      m.name,
+      m.category,
+      m.productGroup || '-',
+      m.division || '-',
+      formatRupiah(m.priceMedis || m.price || 0),
+      m.stockStatus || 'Tersedia'
+    ]);
+    
+    autoTable(doc, {
+      startY: 28,
+      head: [['Nama Obat', 'Kategori', 'Kelompok', 'Divisi', 'Harga Medis', 'Status']],
+      body: tableData,
+      theme: 'grid',
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [41, 128, 185] }
+    });
+    
+    doc.save(`Data_Obat_Assyifa_${new Date().toISOString().slice(0, 10)}.pdf`);
+    addLogObj('Export PDF', 'Mengekspor data obat ke format PDF').catch(console.error);
   };
 
   const processJsonImportData = (parsed: any, source: 'file' | 'pasted') => {
@@ -1389,6 +1499,17 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
               <Settings2 size={14} /> Aturan & PIN
             </button>
             <button
+              id="admin-tab-divisions"
+              onClick={() => setActiveTab('divisions')}
+              className={`px-4 py-3 font-semibold text-xs transition-all border-b-2 whitespace-nowrap cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                activeTab === 'divisions' 
+                  ? 'border-blue-600 text-blue-700 font-bold bg-white rounded-t-lg shadow-sm' 
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-t-lg'
+              }`}
+            >
+              <Database size={14} /> Divisi Obat
+            </button>
+            <button
               id="admin-tab-orders"
               onClick={() => setActiveTab('orders')}
               className={`px-4 py-3 font-semibold text-xs transition-all border-b-2 whitespace-nowrap cursor-pointer flex items-center gap-1.5 shrink-0 ${
@@ -1431,19 +1552,35 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
             {/* MANAGE MEDICINES VIEW */}
             {activeTab === 'medicines' && (
               <div className="space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                   <div>
                     <h3 className="font-extrabold text-slate-800 text-base">DATABASE APOTEK ASSYIFA ({medicines.length} Terdaftar)</h3>
                     <p className="text-xs text-slate-400">Tambahkan obat baru atau edit harga katalog obat secara langsung di bawah ini.</p>
                   </div>
                   {!isAddingMedicine && !editingMedicine && (
-                    <button
-                      id="add-medicine-btn"
-                      onClick={() => { setIsAddingMedicine(true); resetMedicineForm(); }}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all cursor-pointer shadow-sm shadow-blue-600/10"
-                    >
-                      <Plus size={14} /> Tambah Obat Baru
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={handleExportMedicinesExcel}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all cursor-pointer shadow-sm"
+                        title="Export ke Excel"
+                      >
+                        <Download size={14} /> Excel
+                      </button>
+                      <button
+                        onClick={handleExportMedicinesPdf}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition-all cursor-pointer shadow-sm"
+                        title="Export ke PDF"
+                      >
+                        <FileText size={14} /> PDF
+                      </button>
+                      <button
+                        id="add-medicine-btn"
+                        onClick={() => { setIsAddingMedicine(true); resetMedicineForm(); }}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all cursor-pointer shadow-sm shadow-blue-600/10"
+                      >
+                        <Plus size={14} /> Tambah Obat Baru
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -1567,6 +1704,37 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                           <option value="Herbal & Suplemen">Herbal & Suplemen</option>
                           <option value="Alat Kesehatan">Alat Kesehatan</option>
                           <option value="Ibu & Anak">Ibu & Anak</option>
+                        </select>
+                      </div>
+
+                      {/* Product Group selection */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase">Kelompok Obat:</label>
+                        <select
+                          id="form-med-product-group"
+                          value={medicineForm.productGroup || ''}
+                          onChange={(e) => setMedicineForm({...medicineForm, productGroup: e.target.value as any})}
+                          className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="">-- Pilih Kelompok --</option>
+                          <option value="Paten">Paten</option>
+                          <option value="Generik">Generik</option>
+                        </select>
+                      </div>
+
+                      {/* Division selection */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase">Divisi Produk:</label>
+                        <select
+                          id="form-med-division"
+                          value={medicineForm.division || ''}
+                          onChange={(e) => setMedicineForm({...medicineForm, division: e.target.value})}
+                          className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="">-- Pilih Divisi --</option>
+                          {(settings.divisions || []).map((div, i) => (
+                            <option key={i} value={div}>{div}</option>
+                          ))}
                         </select>
                       </div>
 
@@ -2646,7 +2814,78 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
             )}
 
             {/* SYSTEM SETTINGS VIEW */}
-            {activeTab === 'settings' && (
+            
+{activeTab === 'divisions' && (
+            <div className="p-4 sm:p-5 bg-white border border-slate-200 rounded-b-xl shadow-xs min-h-[60vh]">
+              <div className="max-w-2xl mx-auto space-y-6">
+                
+                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl shadow-xs">
+                  <h3 className="font-bold text-blue-900 text-sm mb-3">Manajemen Divisi Obat</h3>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nama divisi baru..."
+                      value={newDivision}
+                      onChange={(e) => setNewDivision(e.target.value)}
+                      className="flex-1 px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      onClick={handleSaveDivision}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs"
+                    >
+                      Tambah Divisi
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="font-bold text-slate-700 text-sm">Daftar Divisi Saat Ini</h4>
+                  {(settings.divisions || []).length === 0 ? (
+                    <p className="text-slate-500 text-xs text-center py-4 bg-slate-50 rounded-lg border border-slate-100">Belum ada divisi yang ditambahkan.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {(settings.divisions || []).map((div, index) => (
+                        <li key={index} className="flex items-center justify-between bg-white border border-slate-200 p-3 rounded-lg shadow-2xs">
+                          {editingDivisionIndex === index ? (
+                            <div className="flex items-center gap-2 flex-1 mr-4">
+                              <input
+                                type="text"
+                                value={editingDivisionName}
+                                onChange={(e) => setEditingDivisionName(e.target.value)}
+                                className="flex-1 px-2 py-1 text-sm border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                              <button onClick={handleUpdateDivision} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded text-xs shrink-0">Simpan</button>
+                              <button onClick={() => setEditingDivisionIndex(null)} className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-xs shrink-0">Batal</button>
+                            </div>
+                          ) : (
+                            <>
+                              <span className="font-semibold text-slate-800 text-sm">{div}</span>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => { setEditingDivisionIndex(index); setEditingDivisionName(div); }}
+                                  className="px-2.5 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 font-bold rounded text-xs"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteDivision(index)}
+                                  className="px-2.5 py-1.5 bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold rounded text-xs"
+                                >
+                                  Hapus
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
               <div className="max-w-xl space-y-6 animate-fadeIn">
                 <div>
                   <h3 className="font-extrabold text-slate-800 text-base">PENGATURAN UMUM / PIN</h3>

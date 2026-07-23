@@ -14,6 +14,8 @@ export interface MultiUnit {
 }
 
 export interface Medicine {
+  productGroup?: 'Paten' | 'Generik';
+  division?: string;
   id: string;
   name: string;
   category: string;
@@ -51,6 +53,7 @@ export interface Promo {
 }
 
 export interface Settings {
+  divisions?: string[];
   adminPin: string;
   whatsappNumber: string; // Dynamic WhatsApp number for orders
   greetingCatalog?: string; // Custom opening greeting for catalog page
