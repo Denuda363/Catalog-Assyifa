@@ -960,12 +960,12 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
 
   
   const handleExportMedicinesExcel = () => {
-    if (medicines.length === 0) {
+    if (filteredMedicines.length === 0) {
       alert("Tidak ada data obat untuk diekspor");
       return;
     }
     
-    const data = medicines.map(m => ({
+    const data = filteredMedicines.map(m => ({
       'ID': m.id,
       'Nama Obat': m.name,
       'Kategori/Golongan': m.category,
@@ -974,6 +974,8 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       'Kandungan Aktif': m.activeIngredient || '-',
       'Indikasi': m.indication || '-',
       'Dosis/Aturan': m.dose || '-',
+      'Satuan Dasar': m.baseUnit || 'Lembar',
+      'Satuan Tambahan': m.multiUnits && m.multiUnits.length > 0 ? m.multiUnits.map(u => `1 ${u.name} = ${u.multiplier} ${m.baseUnit || 'Lembar'}`).join(', ') : '-',
       'Harga Medis': m.priceMedis || m.price || 0,
       'Harga MB': m.priceMb || 0,
       'Harga Khusus': m.priceKhusus || 0,
@@ -990,7 +992,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
   };
 
   const handleExportMedicinesPdf = () => {
-    if (medicines.length === 0) {
+    if (filteredMedicines.length === 0) {
       alert("Tidak ada data obat untuk diekspor");
       return;
     }
@@ -1000,18 +1002,19 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     doc.setFontSize(10);
     doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, 14, 22);
     
-    const tableData = medicines.map(m => [
+    const tableData = filteredMedicines.map(m => [
       m.name,
       m.category,
       m.productGroup || '-',
       m.division || '-',
+      m.baseUnit || 'Lembar',
       formatRupiah(m.priceMedis || m.price || 0),
       m.stockStatus || 'Tersedia'
     ]);
     
     autoTable(doc, {
       startY: 28,
-      head: [['Nama Obat', 'Kategori', 'Kelompok', 'Divisi', 'Harga Medis', 'Status']],
+      head: [['Nama Obat', 'Kategori', 'Kelompok', 'Divisi', 'Satuan', 'Harga Medis', 'Status']],
       body: tableData,
       theme: 'grid',
       styles: { fontSize: 8 },
@@ -1554,7 +1557,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                   <div>
-                    <h3 className="font-extrabold text-slate-800 text-base">DATABASE APOTEK ASSYIFA ({medicines.length} Terdaftar)</h3>
+                    <h3 className="font-extrabold text-slate-800 text-base">DATABASE APOTEK ASSYIFA ({filteredMedicines.length} Terdaftar)</h3>
                     <p className="text-xs text-slate-400">Tambahkan obat baru atau edit harga katalog obat secara langsung di bawah ini.</p>
                   </div>
                   {!isAddingMedicine && !editingMedicine && (
