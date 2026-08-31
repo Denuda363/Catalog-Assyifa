@@ -144,6 +144,26 @@ export async function replacePromosList(promos: Promo[]) {
     }
 }
 
+export async function deleteOrders(orderIds: string[]) {
+  for(let i=0; i < orderIds.length; i+=490) {
+      const chunk = orderIds.slice(i, i+490);
+      const batch = writeBatch(db);
+      chunk.forEach(id => batch.delete(doc(db, 'orders', id)));
+      await batch.commit();
+  }
+}
+
+export async function clearAllOrders() {
+  const existing = await getDocs(collection(db, 'orders'));
+  const docs = existing.docs;
+  for(let i=0; i < docs.length; i+=490) {
+      const chunk = docs.slice(i, i+490);
+      const batch = writeBatch(db);
+      chunk.forEach(docSnap => batch.delete(docSnap.ref));
+      await batch.commit();
+  }
+}
+
 export async function resetAllDataToDefault() {
   // 1. Reset medicines
   await replaceMedicinesList(INITIAL_MEDICINES);

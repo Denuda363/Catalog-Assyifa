@@ -15,7 +15,9 @@ import {
   addLogObj, 
   replaceMedicinesList, 
   replacePromosList, 
-  firebaseInitializeData, 
+  firebaseInitializeData,
+  clearAllOrders,
+  deleteOrders, 
   subscribeLogs,
   resetAllDataToDefault
 } from '../firebaseUtils';
@@ -256,6 +258,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
   const [whatsappNumber, setWhatsappNumber] = useState(settings.whatsappNumber);
   const [greetingCatalog, setGreetingCatalog] = useState(settings.greetingCatalog || '');
   const [greetingPromo, setGreetingPromo] = useState(settings.greetingPromo || '');
+  const [autoDeleteOrders, setAutoDeleteOrders] = useState<'1_week' | '2_weeks' | '1_month' | 'disabled'>(settings.autoDeleteOrders || 'disabled');
   const [pharmacyLogo, setPharmacyLogo] = useState(settings.pharmacyLogo || '');
   const [pharmacyAddress, setPharmacyAddress] = useState(settings.pharmacyAddress || '');
   
@@ -270,13 +273,42 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
   
   const [settingsStatus, setSettingsStatus] = useState({ success: false, message: '' });
   const [isResetting, setIsResetting] = useState(false);
+  const [isResettingOrders, setIsResettingOrders] = useState(false);
+  const [resetOrdersPin, setResetOrdersPin] = useState('');
   const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null);
+
+  // Auto delete old orders
+  useEffect(() => {
+    if (!settings.autoDeleteOrders || settings.autoDeleteOrders === 'disabled') return;
+    if (orders.length === 0) return;
+
+    const now = new Date().getTime();
+    let retentionMs = 0;
+    switch(settings.autoDeleteOrders) {
+      case '1_week': retentionMs = 7 * 24 * 60 * 60 * 1000; break;
+      case '2_weeks': retentionMs = 14 * 24 * 60 * 60 * 1000; break;
+      case '1_month': retentionMs = 30 * 24 * 60 * 60 * 1000; break;
+    }
+
+    if (retentionMs > 0) {
+      const ordersToDelete = orders.filter(o => now - new Date(o.timestamp).getTime() > retentionMs);
+      if (ordersToDelete.length > 0) {
+        const ids = ordersToDelete.map(o => o.id);
+        deleteOrders(ids).then(() => {
+          addLogObj('Auto Delete Order', `Berhasil menghapus otomatis ${ids.length} riwayat order lama.`).catch(console.error);
+        }).catch(err => {
+          console.error("Gagal menghapus order otomatis:", err);
+        });
+      }
+    }
+  }, [orders, settings.autoDeleteOrders]);
 
   // Sync settings prop changes
   useEffect(() => {
     setWhatsappNumber(settings.whatsappNumber);
     setGreetingCatalog(settings.greetingCatalog || '');
     setGreetingPromo(settings.greetingPromo || '');
+    setAutoDeleteOrders(settings.autoDeleteOrders || 'disabled');
     setPharmacyLogo(settings.pharmacyLogo || '');
     setPharmacyAddress(settings.pharmacyAddress || '');
     if (settings.bgType) setBgType(settings.bgType as any);
@@ -733,6 +765,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       whatsappNumber: whatsappNumber || settings.whatsappNumber,
       greetingCatalog: greetingCatalog,
       greetingPromo: greetingPromo,
+      autoDeleteOrders: autoDeleteOrders,
       pharmacyLogo: pharmacyLogo,
       pharmacyAddress: pharmacyAddress,
       bgType: bgType,
@@ -1160,6 +1193,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       whatsappNumber: parsed.settings.whatsappNumber || '6281234567890',
       greetingCatalog: parsed.settings.greetingCatalog || '',
       greetingPromo: parsed.settings.greetingPromo || '',
+      autoDeleteOrders: parsed.settings.autoDeleteOrders || 'disabled',
       pharmacyLogo: parsed.settings.pharmacyLogo || '',
       pharmacyAddress: parsed.settings.pharmacyAddress || '',
       bgType: parsed.settings.bgType || 'pattern',
@@ -1261,6 +1295,26 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     downloadAnchor.click();
     downloadAnchor.remove();
     addLogObj('Super Ekspor', 'Seluruh data lokal berhasil diekspor menjadi berkas berkunci.').catch(console.error);
+  };
+
+  const handleResetOrders = async () => {
+    if (resetOrdersPin !== settings.adminPin) {
+      alert("Kode PIN salah!");
+      return;
+    }
+    
+    if (confirm("Apakah Anda yakin ingin MENGHAPUS SEMUA riwayat order? Tindakan ini tidak dapat dibatalkan!")) {
+      try {
+        await clearAllOrders();
+        addLogObj('Hapus Riwayat Order', 'Riwayat order berhasil direset/dikosongkan.').catch(console.error);
+        setIsResettingOrders(false);
+        setResetOrdersPin('');
+        alert("Riwayat order berhasil dihapus.");
+      } catch (err) {
+        alert("Gagal mereset order. Silakan coba lagi.");
+        console.error(err);
+      }
+    }
   };
 
   const handleImportJson = async (e: React.FormEvent) => {
@@ -2998,6 +3052,27 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
 
                   <div className="h-px bg-slate-200/60 my-4"></div>
 
+                  {/* Auto delete orders */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                      <Trash2 size={13} className="text-blue-600" /> Hapus Otomatis Riwayat Order:
+                    </label>
+                    <select
+                      id="settings-auto-delete-orders"
+                      value={autoDeleteOrders}
+                      onChange={(e) => setAutoDeleteOrders(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-medium"
+                    >
+                      <option value="disabled">Nonaktifkan (Simpan Semua)</option>
+                      <option value="1_week">Lebih Lama Dari 1 Minggu</option>
+                      <option value="2_weeks">Lebih Lama Dari 2 Minggu</option>
+                      <option value="1_month">Lebih Lama Dari 1 Bulan</option>
+                    </select>
+                    <span className="text-[10px] text-slate-400 block">Riwayat order akan dihapus otomatis ketika Anda membuka halaman Control Room ini.</span>
+                  </div>
+
+                  <div className="h-px bg-slate-200/60 my-4"></div>
+
                   {/* Customizable greetings */}
                   <div className="space-y-3">
                     <h4 className="text-xs font-bold text-blue-800 uppercase tracking-widest">Kustomisasi Kata Sambutan / Banner Pengumuman</h4>
@@ -3025,6 +3100,27 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                         />
                       </div>
                     </div>
+                  </div>
+
+                  <div className="h-px bg-slate-200/60 my-4"></div>
+
+                  {/* Auto delete orders */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                      <Trash2 size={13} className="text-blue-600" /> Hapus Otomatis Riwayat Order:
+                    </label>
+                    <select
+                      id="settings-auto-delete-orders"
+                      value={autoDeleteOrders}
+                      onChange={(e) => setAutoDeleteOrders(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-medium"
+                    >
+                      <option value="disabled">Nonaktifkan (Simpan Semua)</option>
+                      <option value="1_week">Lebih Lama Dari 1 Minggu</option>
+                      <option value="2_weeks">Lebih Lama Dari 2 Minggu</option>
+                      <option value="1_month">Lebih Lama Dari 1 Bulan</option>
+                    </select>
+                    <span className="text-[10px] text-slate-400 block">Riwayat order akan dihapus otomatis ketika Anda membuka halaman Control Room ini.</span>
                   </div>
 
                   <div className="h-px bg-slate-200/60 my-4"></div>
@@ -3085,6 +3181,27 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                         )}
                       </div>
                     </div>
+                  </div>
+
+                  <div className="h-px bg-slate-200/60 my-4"></div>
+
+                  {/* Auto delete orders */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
+                      <Trash2 size={13} className="text-blue-600" /> Hapus Otomatis Riwayat Order:
+                    </label>
+                    <select
+                      id="settings-auto-delete-orders"
+                      value={autoDeleteOrders}
+                      onChange={(e) => setAutoDeleteOrders(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-white text-slate-800 rounded-lg border border-slate-200 outline-none text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-medium"
+                    >
+                      <option value="disabled">Nonaktifkan (Simpan Semua)</option>
+                      <option value="1_week">Lebih Lama Dari 1 Minggu</option>
+                      <option value="2_weeks">Lebih Lama Dari 2 Minggu</option>
+                      <option value="1_month">Lebih Lama Dari 1 Bulan</option>
+                    </select>
+                    <span className="text-[10px] text-slate-400 block">Riwayat order akan dihapus otomatis ketika Anda membuka halaman Control Room ini.</span>
                   </div>
 
                   <div className="h-px bg-slate-200/60 my-4"></div>
@@ -3348,15 +3465,43 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                     <h3 className="font-extrabold text-slate-800 text-base">RIWAYAT ORDER</h3>
                     <p className="text-xs text-slate-400">Daftar order pesanan yang masuk melalui WhatsApp.</p>
                   </div>
-                  <div className="relative w-full sm:w-64">
-                    <input
-                      type="text"
-                      placeholder="Cari nama, No HP, ID..."
-                      value={orderSearchTerm}
-                      onChange={(e) => setOrderSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    />
-                    <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    {isResettingOrders ? (
+                      <div className="flex items-center gap-2 bg-rose-50 p-1.5 rounded-lg border border-rose-200 w-full sm:w-auto">
+                        <input
+                          type="password"
+                          placeholder="PIN Admin"
+                          value={resetOrdersPin}
+                          onChange={(e) => setResetOrdersPin(e.target.value)}
+                          className="w-24 px-2 py-1 text-xs border border-rose-200 rounded outline-none focus:border-rose-400"
+                        />
+                        <button onClick={handleResetOrders} className="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1 rounded text-xs font-bold transition-colors">
+                          Konfirmasi
+                        </button>
+                        <button onClick={() => { setIsResettingOrders(false); setResetOrdersPin(''); }} className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1 rounded text-xs font-bold transition-colors">
+                          Batal
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setIsResettingOrders(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold rounded-lg transition-all cursor-pointer shadow-sm"
+                        title="Reset Riwayat Order"
+                      >
+                        <Trash2 size={14} /> Reset Data
+                      </button>
+                    )}
+
+                    <div className="relative flex-1 sm:w-64">
+                      <input
+                        type="text"
+                        placeholder="Cari nama, No HP, ID..."
+                        value={orderSearchTerm}
+                        onChange={(e) => setOrderSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                      />
+                      <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
+                    </div>
                   </div>
                 </div>
 

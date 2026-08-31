@@ -53,6 +53,7 @@ export interface Promo {
 }
 
 export interface Settings {
+  autoDeleteOrders?: '1_week' | '2_weeks' | '1_month' | 'disabled';
   divisions?: string[];
   adminPin: string;
   whatsappNumber: string; // Dynamic WhatsApp number for orders
