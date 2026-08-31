@@ -1005,16 +1005,14 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     const tableData = filteredMedicines.map(m => [
       m.name,
       m.category,
-      m.productGroup || '-',
-      m.division || '-',
+      m.activeIngredient || '-',
       m.baseUnit || 'Lembar',
-      formatRupiah(m.priceMedis || m.price || 0),
-      m.stockStatus || 'Tersedia'
+      formatRupiah(m.priceMedis || m.price || 0)
     ]);
     
     autoTable(doc, {
       startY: 28,
-      head: [['Nama Obat', 'Kategori', 'Kelompok', 'Divisi', 'Satuan', 'Harga Medis', 'Status']],
+      head: [['Nama Obat', 'Kategori', 'Komposisi Produk', 'Satuan', 'Harga Medis']],
       body: tableData,
       theme: 'grid',
       styles: { fontSize: 8 },
