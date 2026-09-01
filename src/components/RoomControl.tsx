@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Medicine, Promo, ActionLog, Settings, MultiUnit, Order } from '../types';
 import { formatRupiah } from '../utils';
 import { 
@@ -277,6 +277,9 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
   const [resetOrdersPin, setResetOrdersPin] = useState('');
   const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null);
 
+  // Track attempted deletions to prevent optimistic-update infinite loops on quota errors
+  const attemptedDeletions = useRef<Set<string>>(new Set());
+
   // Auto delete old orders
   useEffect(() => {
     if (!settings.autoDeleteOrders || settings.autoDeleteOrders === 'disabled') return;
@@ -291,13 +294,20 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     }
 
     if (retentionMs > 0) {
-      const ordersToDelete = orders.filter(o => now - new Date(o.timestamp).getTime() > retentionMs);
+      const ordersToDelete = orders.filter(o => {
+        if (attemptedDeletions.current.has(o.id)) return false;
+        return (now - new Date(o.timestamp).getTime()) > retentionMs;
+      });
+      
       if (ordersToDelete.length > 0) {
-        const ids = ordersToDelete.map(o => o.id);
+        const ids = ordersToDelete.map(o => {
+          attemptedDeletions.current.add(o.id);
+          return o.id;
+        });
         deleteOrders(ids).then(() => {
           addLogObj('Auto Delete Order', `Berhasil menghapus otomatis ${ids.length} riwayat order lama.`).catch(console.error);
         }).catch(err => {
-          console.error("Gagal menghapus order otomatis:", err);
+          console.error("Gagal menghapus order otomatis (Mungkin karena Firebase Quota Exceeded):", err);
         });
       }
     }
@@ -1035,17 +1045,29 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     doc.setFontSize(10);
     doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, 14, 22);
     
-    const tableData = filteredMedicines.map(m => [
-      m.name,
-      m.category,
-      m.activeIngredient || '-',
-      m.baseUnit || 'Lembar',
-      formatRupiah(m.priceMedis || m.price || 0)
-    ]);
+    // Sort by category first
+    const sortedMedicines = [...filteredMedicines].sort((a, b) => a.category.localeCompare(b.category));
+    
+    const tableData: any[] = [];
+    let currentCategory = '';
+    
+    sortedMedicines.forEach(m => {
+      if (m.category !== currentCategory) {
+        currentCategory = m.category;
+        // Group header row
+        tableData.push([{ content: currentCategory, colSpan: 4, styles: { fillColor: [230, 230, 230], fontStyle: 'bold', textColor: [0, 0, 0] } }]);
+      }
+      tableData.push([
+        m.name,
+        m.activeIngredient || '-',
+        m.baseUnit || 'Lembar',
+        formatRupiah(m.priceMedis || m.price || 0)
+      ]);
+    });
     
     autoTable(doc, {
       startY: 28,
-      head: [['Nama Obat', 'Kategori', 'Komposisi Produk', 'Satuan', 'Harga Medis']],
+      head: [['Nama Obat', 'Komposisi Produk', 'Satuan', 'Harga Medis']],
       body: tableData,
       theme: 'grid',
       styles: { fontSize: 8 },
