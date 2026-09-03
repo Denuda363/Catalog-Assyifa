@@ -1054,7 +1054,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     let currentCategory = '';
     
     const headRow = includeImages 
-      ? ['Gambar', 'Nama Obat', 'Komposisi Produk', 'Satuan', 'Harga']
+      ? ['Nama Obat', 'Gambar', 'Komposisi Produk', 'Satuan', 'Harga']
       : ['Nama Obat', 'Komposisi Produk', 'Satuan', 'Harga'];
 
     sortedMedicines.forEach(m => {
@@ -1066,8 +1066,8 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       
       if (includeImages) {
         tableData.push([
-          m.image ? { content: '', image: m.image } : '-',
           m.name,
+          m.image ? { content: '', image: m.image } : '-',
           m.activeIngredient || '-',
           m.baseUnit || 'Lembar',
           formatRupiah(m.priceMedis || m.price || 0)
@@ -1091,7 +1091,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
       headStyles: { fillColor: [41, 128, 185] },
       bodyStyles: includeImages ? { minCellHeight: 16 } : {},
       didDrawCell: (data: any) => {
-        if (includeImages && data.row.section === 'body' && data.column.index === 0) {
+        if (includeImages && data.row.section === 'body' && data.column.index === 1) {
           const cellRaw = data.cell.raw;
           if (cellRaw && cellRaw.image) {
             try {
