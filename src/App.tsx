@@ -9,6 +9,7 @@ import CatalogView from './components/CatalogView';
 import PromoView from './components/PromoView';
 import RoomControl from './components/RoomControl';
 import CartModal from './components/CartModal';
+import { PWAInstallButton } from './components/PWAInstallButton';
 import HomeView from './components/HomeView';
 import ProfileView from './components/ProfileView';
 import { 
@@ -374,6 +375,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <PWAInstallButton />
             {/* Dark mode toggle */}
             <button
               onClick={() => setThemeMode(prev => prev === 'light' ? 'dark' : prev === 'dark' ? 'auto' : 'light')}

@@ -12,8 +12,11 @@ export default defineConfig(() => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['icon-192x192.png', 'icon-512x512.png'],
+        devOptions: {
+          enabled: true,
+          type: 'module'
+        },
         manifest: {
-          name: 'Apotek Assyifa Farma',
           short_name: 'Assyifa',
           description: 'Aplikasi Apotek Assyifa Farma',
           theme_color: '#2563eb',
