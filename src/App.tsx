@@ -13,12 +13,14 @@ import { PWAInstallButton } from './components/PWAInstallButton';
 import { UserGuideModal } from './components/UserGuideModal';
 import HomeView from './components/HomeView';
 import ProfileView from './components/ProfileView';
+import { INITIAL_MEDICINES, INITIAL_PROMOS } from './initialData';
 import { 
   subscribeMedicines, 
   subscribePromos, 
   subscribeSettings,
   subscribeOrders,
-  firebaseInitializeData
+  firebaseInitializeData,
+  getCachedData
 } from './firebaseUtils';
 import { 
   Heart, 
@@ -43,10 +45,18 @@ import { motion, AnimatePresence } from 'motion/react';
 export default function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'catalog' | 'promo' | 'profile' | 'control'>('home');
   const [isAdminVisible, setIsAdminVisible] = useState(false);
-  const [medicines, setMedicines] = useState<Medicine[]>([]);
-  const [promos, setPromos] = useState<Promo[]>([]);
-  const [settings, setSettings] = useState<Settings>({ adminPin: '12345', whatsappNumber: '6281234567890' });
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [medicines, setMedicines] = useState<Medicine[]>(() => 
+    getCachedData('assyifa_medicines_cache', INITIAL_MEDICINES)
+  );
+  const [promos, setPromos] = useState<Promo[]>(() => 
+    getCachedData('assyifa_promos_cache', INITIAL_PROMOS)
+  );
+  const [settings, setSettings] = useState<Settings>(() => 
+    getCachedData('assyifa_settings_cache', { adminPin: '12345', whatsappNumber: '6281234567890' })
+  );
+  const [orders, setOrders] = useState<Order[]>(() => 
+    getCachedData('assyifa_orders_cache', [])
+  );
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);

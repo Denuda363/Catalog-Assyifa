@@ -5,7 +5,7 @@
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Medicine, Promo, ActionLog, Settings, MultiUnit, Order } from '../types';
-import { formatRupiah } from '../utils';
+import { formatRupiah, useDebounce } from '../utils';
 import { 
   saveMedicine, 
   deleteMedicine, 
@@ -13,6 +13,7 @@ import {
   deletePromo, 
   saveSettingsObj, 
   addLogObj, 
+  upsertMedicinesList,
   replaceMedicinesList, 
   replacePromosList, 
   firebaseInitializeData,
@@ -192,34 +193,36 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
 
   // Search states
   const [medicineSearchTerm, setMedicineSearchTerm] = useState('');
+  const debouncedMedicineSearchTerm = useDebounce(medicineSearchTerm, 150);
   const [orderSearchTerm, setOrderSearchTerm] = useState('');
+  const debouncedOrderSearchTerm = useDebounce(orderSearchTerm, 150);
 
   // Derived filtered medicines
   const filteredMedicines = useMemo(() => {
-    if (!medicineSearchTerm.trim()) return medicines;
-    const term = medicineSearchTerm.toLowerCase();
+    if (!debouncedMedicineSearchTerm.trim()) return medicines;
+    const term = debouncedMedicineSearchTerm.toLowerCase();
     return medicines.filter(med => 
       med.name.toLowerCase().includes(term) ||
       (med.activeIngredient && med.activeIngredient.toLowerCase().includes(term)) ||
       (med.category && med.category.toLowerCase().includes(term))
     );
-  }, [medicines, medicineSearchTerm]);
+  }, [medicines, debouncedMedicineSearchTerm]);
 
   // Derived filtered orders
   const filteredOrders = useMemo(() => {
-    if (!orderSearchTerm.trim()) return orders;
-    const term = orderSearchTerm.toLowerCase();
+    if (!debouncedOrderSearchTerm.trim()) return orders;
+    const term = debouncedOrderSearchTerm.toLowerCase();
     return orders.filter(order => 
       order.customerData?.name?.toLowerCase().includes(term) ||
       order.customerData?.phone?.toLowerCase().includes(term) ||
       order.id.toLowerCase().includes(term)
     );
-  }, [orders, orderSearchTerm]);
+  }, [orders, debouncedOrderSearchTerm]);
 
   // Reset page when search term changes
   useEffect(() => {
     setMedicinePage(1);
-  }, [medicineSearchTerm]);
+  }, [debouncedMedicineSearchTerm]);
 
   useEffect(() => {
     setOrderPage(1);
@@ -1495,18 +1498,27 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     if (!importPreview) return;
 
     try {
-      if (importPreview.type === 'excel' && importPreview.excelMedicinesToSave) {
-        await replaceMedicinesList(importPreview.excelMedicinesToSave);
+      if (importPreview.type === 'excel') {
         const newCount = importPreview.newItems?.length || 0;
         const updatedCount = importPreview.updatedItems?.length || 0;
         const skippedCount = importPreview.skippedItems?.length || 0;
 
+        const itemsToUpsert: Medicine[] = [
+          ...(importPreview.newItems || []),
+          ...(importPreview.updatedItems?.map(u => u.medicine) || [])
+        ];
+
+        if (itemsToUpsert.length > 0) {
+          // Ultra-fast targeted upsert: writes only changed & new items in parallel batches
+          await upsertMedicinesList(itemsToUpsert);
+        }
+
         await addLogObj(
           'Impor Excel',
-          `Hasil impor data Excel: ${newCount} obat baru ditambahkan, ${updatedCount} obat diperbarui di sistem, ${skippedCount} dilewati (sama persis).`
+          `Hasil impor data Excel super cepat: ${newCount} obat baru ditambahkan, ${updatedCount} obat diperbarui di sistem, ${skippedCount} dilewati (sama persis).`
         );
         alert(
-          `Impor data Excel berhasil diproses!\n\n` +
+          `Impor data Excel super cepat berhasil diproses!\n\n` +
           `• ${newCount} obat baru berhasil ditambahkan ke katalog\n` +
           `• ${updatedCount} obat berhasil diperbarui datanya di sistem\n` +
           `• ${skippedCount} obat dilewati (data sudah ada dan tidak ada perubahan)`
