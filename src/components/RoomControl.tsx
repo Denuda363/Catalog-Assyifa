@@ -45,12 +45,16 @@ import {
   Hash,
   MapPin,
   Search,
-  ShoppingCart
+  ShoppingCart,
+  HelpCircle,
+  RefreshCw,
+  BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { AdminUserGuide } from './AdminUserGuide';
 
 interface RoomControlProps {
   medicines: Medicine[];
@@ -69,6 +73,18 @@ export interface ImportPreviewData {
     reason: string;
   }[];
   originalDataLength: number;
+  newItems?: Medicine[];
+  updatedItems?: {
+    medicine: Medicine;
+    oldMedicine: Medicine;
+    changes: string[];
+  }[];
+  skippedItems?: {
+    name: string;
+    category?: string;
+    price?: number;
+    reason: string;
+  }[];
   jsonDataToSave?: {
     medicines?: Medicine[];
     promos?: Promo[];
@@ -165,7 +181,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
   const [loginError, setLoginError] = useState('');
 
   // Control tabs
-  const [activeTab, setActiveTab] = useState<'medicines' | 'promos' | 'settings' | 'logs' | 'super' | 'orders' | 'divisions'>('orders');
+  const [activeTab, setActiveTab] = useState<'medicines' | 'promos' | 'settings' | 'logs' | 'super' | 'orders' | 'divisions' | 'guide'>('orders');
 
   // Pagination and Search states
   const [medicinePage, setMedicinePage] = useState(1);
@@ -216,6 +232,8 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
   const [medicineForm, setMedicineForm, undoMedicineForm, redoMedicineForm, canUndoMedicineForm, canRedoMedicineForm, resetMedicineHistory, forceResetMedicineHistory] = useHistoryState({
     name: '',
     category: 'Obat Bebas',
+    productGroup: '' as 'Paten' | 'Generik' | '',
+    division: '',
     activeIngredient: '',
     price: 0,
     priceMb: 0,
@@ -276,6 +294,7 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
   const [isResettingOrders, setIsResettingOrders] = useState(false);
   const [resetOrdersPin, setResetOrdersPin] = useState('');
   const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null);
+  const [previewFilter, setPreviewFilter] = useState<'all' | 'new' | 'updated' | 'skipped' | 'failed'>('all');
 
   // Track attempted deletions to prevent optimistic-update infinite loops on quota errors
   const attemptedDeletions = useRef<Set<string>>(new Set());
@@ -562,6 +581,8 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     resetMedicineHistory({
       name: med.name,
       category: med.category,
+      productGroup: med.productGroup || '',
+      division: med.division || '',
       activeIngredient: med.activeIngredient,
       price: med.price || 0,
       priceMb: med.priceMb || 0,
@@ -829,12 +850,12 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
           let st2 = '';
           let p2 = '';
           
-          if (m.conversionUnits && m.conversionUnits.length > 0) {
-            st1 = m.conversionUnits[0].unit;
-            p1 = String(m.conversionUnits[0].multiplier);
-            if (m.conversionUnits.length > 1) {
-              st2 = m.conversionUnits[1].unit;
-              p2 = String(m.conversionUnits[1].multiplier);
+          if (m.multiUnits && m.multiUnits.length > 0) {
+            st1 = m.multiUnits[0].name;
+            p1 = String(m.multiUnits[0].multiplier);
+            if (m.multiUnits.length > 1) {
+              st2 = m.multiUnits[1].name;
+              p2 = String(m.multiUnits[1].multiplier);
             }
           }
           
@@ -845,16 +866,16 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
             'Satuan Dasar': m.baseUnit || '',
             'Status Stok': m.stockStatus || 'Tersedia',
             'Harga': m.priceMedis || m.price || 0,
-            'Harga MB': m.priceMB || 0,
+            'Harga MB': m.priceMb || 0,
             'Harga Promo': m.pricePromo || 0,
             'Harga Khusus': m.priceKhusus || 0,
-            'Harga HK OTC': m.priceHKOTC || 0,
+            'Harga HK OTC': m.priceHkOtc || 0,
             'Satuan Tambahan 1': st1,
             'Pengali 1': p1,
             'Satuan Tambahan 2': st2,
             'Pengali 2': p2,
-            'Indikasi': m.indications || '',
-            'Dosis': m.dosage || '',
+            'Indikasi': m.indication || '',
+            'Dosis': m.dose || '',
             'Apakah Promo (Ya/Tidak)': m.isPromo ? 'Ya' : 'Tidak'
           };
         });
@@ -940,14 +961,28 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
           return;
         }
 
-        const successItems: Medicine[] = [];
+        const normalizeName = (str: string) => str.trim().toLowerCase().replace(/\s+/g, ' ');
+
+        // Map existing medicines by normalized name
+        const existingByName = new Map<string, Medicine>();
+        medicines.forEach(m => {
+          existingByName.set(normalizeName(m.name), m);
+        });
+
+        const newItems: Medicine[] = [];
+        const updatedItems: { medicine: Medicine; oldMedicine: Medicine; changes: string[] }[] = [];
+        const skippedItems: { name: string; category?: string; price?: number; reason: string }[] = [];
         const failedItems: any[] = [];
+
+        // Base map of all current medicines (keyed by ID) to apply updates and new additions
+        const medicinesResultMap = new Map<string, Medicine>();
+        medicines.forEach(m => medicinesResultMap.set(m.id, { ...m }));
 
         jsonData.forEach((row: any, i: number) => {
           const rowIndex = i + 2; // Row 1 is header, index 0 is Row 2
-          const name = row['Nama Obat'] || row['name'] || row['Nama'] || '';
+          const rawName = row['Nama Obat'] || row['name'] || row['Nama'] || '';
 
-          if (!name || !name.toString().trim()) {
+          if (!rawName || !rawName.toString().trim()) {
             failedItems.push({
               rowIndex,
               name: 'Tidak teridentifikasi',
@@ -956,11 +991,15 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
             return;
           }
 
-          const category = row['Kategori'] || row['category'] || 'Obat Bebas';
-          const activeIngredient = row['Kandungan Aktif'] || row['activeIngredient'] || '';
-          const baseUnit = row['Satuan Dasar'] || row['baseUnit'] || 'Pcs';
+          const trimmedName = rawName.toString().trim();
+          const normName = normalizeName(trimmedName);
+
+          const category = (row['Kategori'] || row['category'] || 'Obat Bebas').toString().trim();
+          const activeIngredient = (row['Kandungan Aktif'] || row['activeIngredient'] || '').toString().trim();
+          const baseUnit = (row['Satuan Dasar'] || row['baseUnit'] || 'Pcs').toString().trim();
           const stockStatusRaw = String(row['Status Stok'] || row['stockStatus'] || 'Tersedia').trim().toLowerCase();
-          const stockStatus = stockStatusRaw === 'kosong' ? 'Kosong' : 'Tersedia';
+          const stockStatus: 'Tersedia' | 'Kosong' = (stockStatusRaw === 'kosong' || stockStatusRaw === 'habis') ? 'Kosong' : 'Tersedia';
+          
           const priceMedis = parseCleanNumber(row['Harga Medis'] || row['priceMedis'] || row['Harga']);
           const priceMb = parseCleanNumber(row['Harga MB'] || row['priceMb']);
           const pricePromo = parseCleanNumber(row['Harga Promo'] || row['pricePromo']);
@@ -972,21 +1011,20 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
           if (originalPrice <= 0) {
             failedItems.push({
               rowIndex,
-              name: name.toString().trim(),
-              reason: 'Harga utama obat (Harga Medis/Harga Utama) tidak valid atau bernilai Rp 0.'
+              name: trimmedName,
+              reason: 'Harga utama obat (Harga Medis/Harga) tidak valid atau bernilai Rp 0.'
             });
             return;
           }
 
-          const indication = row['Indikasi'] || row['indication'] || '';
-          const dose = row['Dosis'] || row['dose'] || '';
+          const indication = (row['Indikasi'] || row['indication'] || '').toString().trim();
+          const dose = (row['Dosis'] || row['dose'] || '').toString().trim();
 
           const rawPromo = String(row['Apakah Promo (Ya/Tidak)'] || row['isPromo'] || 'Tidak').trim().toLowerCase();
           const isPromo = (rawPromo === 'ya' || rawPromo === 'yes' || rawPromo === 'true' || rawPromo === '1');
           const promoPriceVal = isPromo ? (pricePromo || priceMedis) : 0;
 
           const multiUnits: MultiUnit[] = [];
-          
           const u1Name = row['Satuan Tambahan 1'] || row['Unit 1'];
           const u1Mult = parseCleanNumber(row['Pengali 1'] || row['Multiplier 1']);
           if (u1Name && u1Mult > 0) {
@@ -999,40 +1037,175 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
             multiUnits.push({ name: u2Name.toString().trim(), multiplier: u2Mult });
           }
 
-          const newMed: Medicine = {
-            id: 'med_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-            name: name.toString().trim(),
-            category: category,
-            activeIngredient: activeIngredient,
-            price: originalPrice,
-            priceMedis: priceMedis || originalPrice,
-            priceMb: priceMb || originalPrice,
-            pricePromo: pricePromo || promoPriceVal,
-            priceKhusus: priceKhusus || originalPrice,
-            priceHkOtc: priceHkOtc || originalPrice,
-            baseUnit: baseUnit,
-            multiUnits: multiUnits.length > 0 ? multiUnits : undefined,
-            stockStatus: stockStatus as 'Tersedia' | 'Kosong',
-            indication: indication,
-            dose: dose,
-            isPromo: isPromo,
-            promoPrice: isPromo ? promoPriceVal : undefined,
-            updatedAt: new Date().toISOString()
-          };
+          // Check if medicine already exists by name
+          const existingMed = existingByName.get(normName);
 
-          successItems.push(newMed);
+          if (!existingMed) {
+            // ATURAN 1: JIKA NAMA ITEM BELUM ADA -> TAMBAH DATA BARU!
+            const newMed: Medicine = {
+              id: 'med_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+              name: trimmedName,
+              category,
+              activeIngredient,
+              price: originalPrice,
+              priceMedis: priceMedis || originalPrice,
+              priceMb: priceMb || originalPrice,
+              pricePromo: pricePromo || promoPriceVal,
+              priceKhusus: priceKhusus || originalPrice,
+              priceHkOtc: priceHkOtc || originalPrice,
+              baseUnit,
+              multiUnits: multiUnits.length > 0 ? multiUnits : undefined,
+              stockStatus,
+              indication,
+              dose,
+              isPromo,
+              promoPrice: isPromo ? promoPriceVal : undefined,
+              updatedAt: new Date().toISOString()
+            };
+
+            newItems.push(newMed);
+            existingByName.set(normName, newMed);
+            medicinesResultMap.set(newMed.id, newMed);
+          } else {
+            // ATURAN 2: JIKA NAMA ITEM SUDAH ADA -> CEK APAKAH ADA BAGIAN KOLOM YANG DIUBAH!
+            const changes: string[] = [];
+
+            // 1. Cek Harga Medis / Harga Utama
+            const oldPriceMedis = existingMed.priceMedis || existingMed.price || 0;
+            const newPriceMedisVal = priceMedis || originalPrice;
+            if (newPriceMedisVal !== oldPriceMedis) {
+              changes.push(`Harga Medis: ${formatRupiah(oldPriceMedis)} ➔ ${formatRupiah(newPriceMedisVal)}`);
+            }
+
+            // 2. Cek Harga MB
+            const oldPriceMb = existingMed.priceMb || 0;
+            if (priceMb > 0 && priceMb !== oldPriceMb) {
+              changes.push(`Harga MB: ${formatRupiah(oldPriceMb)} ➔ ${formatRupiah(priceMb)}`);
+            }
+
+            // 3. Cek Harga Khusus
+            const oldPriceKhusus = existingMed.priceKhusus || 0;
+            if (priceKhusus > 0 && priceKhusus !== oldPriceKhusus) {
+              changes.push(`Harga Khusus: ${formatRupiah(oldPriceKhusus)} ➔ ${formatRupiah(priceKhusus)}`);
+            }
+
+            // 4. Cek Harga HK OTC
+            const oldPriceHk = existingMed.priceHkOtc || 0;
+            if (priceHkOtc > 0 && priceHkOtc !== oldPriceHk) {
+              changes.push(`Harga HK OTC: ${formatRupiah(oldPriceHk)} ➔ ${formatRupiah(priceHkOtc)}`);
+            }
+
+            // 5. Cek Harga Promo
+            const oldPricePromo = existingMed.pricePromo || 0;
+            if (pricePromo > 0 && pricePromo !== oldPricePromo) {
+              changes.push(`Harga Promo: ${formatRupiah(oldPricePromo)} ➔ ${formatRupiah(pricePromo)}`);
+            }
+
+            // 6. Cek Status Stok
+            const oldStock = existingMed.stockStatus || 'Tersedia';
+            if (stockStatus !== oldStock) {
+              changes.push(`Status Stok: ${oldStock} ➔ ${stockStatus}`);
+            }
+
+            // 7. Cek Kategori
+            if (category && category !== existingMed.category) {
+              changes.push(`Kategori: ${existingMed.category} ➔ ${category}`);
+            }
+
+            // 8. Cek Kandungan Aktif
+            const oldActive = (existingMed.activeIngredient || '').trim();
+            if (activeIngredient && activeIngredient !== oldActive) {
+              changes.push(`Kandungan: ${oldActive || '-'} ➔ ${activeIngredient}`);
+            }
+
+            // 9. Cek Satuan Dasar
+            const oldUnit = (existingMed.baseUnit || '').trim();
+            if (baseUnit && baseUnit !== oldUnit) {
+              changes.push(`Satuan: ${oldUnit || '-'} ➔ ${baseUnit}`);
+            }
+
+            // 10. Cek Indikasi
+            const oldIndication = (existingMed.indication || '').trim();
+            if (indication && indication !== oldIndication) {
+              changes.push(`Indikasi diperbarui`);
+            }
+
+            // 11. Cek Dosis
+            const oldDose = (existingMed.dose || '').trim();
+            if (dose && dose !== oldDose) {
+              changes.push(`Dosis diperbarui`);
+            }
+
+            // 12. Cek Status Promo
+            if (isPromo !== !!existingMed.isPromo) {
+              changes.push(`Promo: ${existingMed.isPromo ? 'Ya' : 'Tidak'} ➔ ${isPromo ? 'Ya' : 'Tidak'}`);
+            }
+
+            // 13. Cek Multi Units
+            if (multiUnits.length > 0) {
+              const oldMultiUnitsStr = JSON.stringify(existingMed.multiUnits || []);
+              const newMultiUnitsStr = JSON.stringify(multiUnits);
+              if (oldMultiUnitsStr !== newMultiUnitsStr) {
+                changes.push(`Satuan Tambahan diperbarui`);
+              }
+            }
+
+            if (changes.length > 0) {
+              // KONDISI A: NAMA SUDAH ADA & ADA KOLOM DIUBAH -> UBAH JUGA DI SISTEM!
+              const updatedMed: Medicine = {
+                ...existingMed,
+                name: trimmedName,
+                category: category || existingMed.category,
+                activeIngredient: activeIngredient || existingMed.activeIngredient,
+                price: newPriceMedisVal,
+                priceMedis: newPriceMedisVal,
+                priceMb: priceMb > 0 ? priceMb : existingMed.priceMb,
+                pricePromo: pricePromo > 0 ? pricePromo : existingMed.pricePromo,
+                priceKhusus: priceKhusus > 0 ? priceKhusus : existingMed.priceKhusus,
+                priceHkOtc: priceHkOtc > 0 ? priceHkOtc : existingMed.priceHkOtc,
+                baseUnit: baseUnit || existingMed.baseUnit,
+                stockStatus,
+                indication: indication || existingMed.indication,
+                dose: dose || existingMed.dose,
+                isPromo,
+                promoPrice: isPromo ? (pricePromo || newPriceMedisVal || existingMed.promoPrice) : undefined,
+                multiUnits: multiUnits.length > 0 ? multiUnits : existingMed.multiUnits,
+                updatedAt: new Date().toISOString()
+              };
+
+              updatedItems.push({
+                medicine: updatedMed,
+                oldMedicine: existingMed,
+                changes
+              });
+              existingByName.set(normName, updatedMed);
+              medicinesResultMap.set(existingMed.id, updatedMed);
+            } else {
+              // KONDISI B: NAMA SUDAH ADA & TIDAK ADA PERUBAHAN KOLOM -> JANGAN IKUT TERIMPORT / SKIP!
+              skippedItems.push({
+                name: trimmedName,
+                category: existingMed.category,
+                price: existingMed.priceMedis || existingMed.price,
+                reason: 'Data sudah ada di sistem dan seluruh kolom sama persis (dilewati, tidak diduplikasi).'
+              });
+            }
+          }
         });
 
-        // Current medicines to extend
-        const mergedMedicines = [...medicines, ...successItems];
+        const excelMedicinesToSave = Array.from(medicinesResultMap.values());
+        const totalActionable = newItems.length + updatedItems.length;
 
         setImportPreview({
           type: 'excel',
-          successItems,
+          successItems: totalActionable > 0 ? [...newItems, ...updatedItems.map(u => u.medicine)] : [],
           failedItems,
           originalDataLength: jsonData.length,
-          excelMedicinesToSave: mergedMedicines
+          newItems,
+          updatedItems,
+          skippedItems,
+          excelMedicinesToSave
         });
+        setPreviewFilter('all');
       } catch (err: any) {
         console.error(err);
         alert('Gagal mengimpor file Excel: ' + err.message);
@@ -1324,8 +1497,20 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
     try {
       if (importPreview.type === 'excel' && importPreview.excelMedicinesToSave) {
         await replaceMedicinesList(importPreview.excelMedicinesToSave);
-        await addLogObj('Impor Excel', `Berhasil mengimpor ${importPreview.successItems.length} data obat baru dari berkas Excel.`);
-        alert(`Berhasil mengimpor ${importPreview.successItems.length} data obat dari Excel!`);
+        const newCount = importPreview.newItems?.length || 0;
+        const updatedCount = importPreview.updatedItems?.length || 0;
+        const skippedCount = importPreview.skippedItems?.length || 0;
+
+        await addLogObj(
+          'Impor Excel',
+          `Hasil impor data Excel: ${newCount} obat baru ditambahkan, ${updatedCount} obat diperbarui di sistem, ${skippedCount} dilewati (sama persis).`
+        );
+        alert(
+          `Impor data Excel berhasil diproses!\n\n` +
+          `• ${newCount} obat baru berhasil ditambahkan ke katalog\n` +
+          `• ${updatedCount} obat berhasil diperbarui datanya di sistem\n` +
+          `• ${skippedCount} obat dilewati (data sudah ada dan tidak ada perubahan)`
+        );
         if (onDataChange) onDataChange();
       } else if (importPreview.type === 'json' && importPreview.jsonDataToSave) {
         const { medicines: mList, promos: pList, settings: sObj } = importPreview.jsonDataToSave;
@@ -1672,6 +1857,17 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
               }`}
             >
               <ShoppingCart size={14} /> Riwayat Order
+            </button>
+            <button
+              id="admin-tab-guide"
+              onClick={() => setActiveTab('guide')}
+              className={`px-4 py-3 font-semibold text-xs transition-all border-b-2 whitespace-nowrap cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                activeTab === 'guide' 
+                  ? 'border-blue-600 text-blue-700 font-bold bg-white rounded-t-lg shadow-sm' 
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-t-lg'
+              }`}
+            >
+              <BookOpen size={14} className="text-blue-600" /> Panduan & Bantuan
             </button>
             {isSuperUser && (
               <>
@@ -3039,11 +3235,15 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
           )}
 
           {activeTab === 'settings' && (
-              <div className="max-w-xl space-y-6 animate-fadeIn">
-                <div>
-                  <h3 className="font-extrabold text-slate-800 text-base">PENGATURAN UMUM / PIN</h3>
-                  <p className="text-xs text-slate-400">Atur nomor order WhatsApp apotek dan ganti PIN keamanan Room Control di bawah ini.</p>
-                </div>
+              <div className="space-y-8 animate-fadeIn max-w-4xl">
+                {/* Panduan Penggunaan Lengkap & Solusi Kendala */}
+                <AdminUserGuide />
+
+                <div className="max-w-xl space-y-6 pt-6 border-t border-slate-200">
+                  <div>
+                    <h3 className="font-extrabold text-slate-800 text-base">PENGATURAN UMUM / PIN</h3>
+                    <p className="text-xs text-slate-400">Atur nomor order WhatsApp apotek dan ganti PIN keamanan Room Control di bawah ini.</p>
+                  </div>
 
                 <form onSubmit={handleSaveSettings} className="space-y-4 bg-slate-50/40 p-5 rounded-2xl border border-slate-100">
                   {settingsStatus.message && (
@@ -3553,7 +3753,8 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
             {/* ORDERS VIEW */}
             {activeTab === 'orders' && (
@@ -3684,6 +3885,13 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
               </div>
             )}
 
+            {/* GUIDE & TROUBLESHOOTING VIEW */}
+            {activeTab === 'guide' && (
+              <div className="space-y-6 animate-fadeIn max-w-4xl">
+                <AdminUserGuide />
+              </div>
+            )}
+
             {/* SUPER SYSTEM SETTINGS VIEW */}
             {activeTab === 'super' && isSuperUser && (
               <div className="space-y-6 max-w-2xl">
@@ -3800,50 +4008,163 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
             </div>
 
             {/* Content area */}
-            <div className="p-5 overflow-y-auto space-y-5 flex-1">
+            <div className="p-5 overflow-y-auto space-y-4 flex-1">
               
               {/* Summary Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div className="bg-emerald-50/50 border border-emerald-250 border-emerald-100/60 p-4 rounded-xl flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
-                    <CheckCircle size={18} />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div 
+                  onClick={() => setPreviewFilter('new')}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                    previewFilter === 'new' 
+                      ? 'bg-emerald-100/70 border-emerald-500 shadow-sm' 
+                      : 'bg-emerald-50/50 border-emerald-200/70 hover:bg-emerald-100/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-extrabold text-emerald-700 uppercase tracking-wider block">Data Baru</span>
+                    <Plus size={14} className="text-emerald-600" />
                   </div>
-                  <div>
-                    <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider block leading-none">Total Berhasil Validasi</span>
-                    <h4 className="text-lg font-black text-emerald-800 leading-none mt-1.5">
-                      {importPreview.successItems.length} <span className="text-[10px] font-medium text-emerald-600">item / baris</span>
-                    </h4>
-                  </div>
+                  <h4 className="text-lg font-black text-emerald-900 leading-none mt-1.5">
+                    {importPreview.newItems?.length ?? importPreview.successItems.length}
+                  </h4>
+                  <p className="text-[9.5px] text-emerald-600/80 mt-1 truncate">Ditambahkan ke sistem</p>
                 </div>
 
-                <div className="bg-rose-50/50 border border-rose-250 border-rose-100/60 p-4 rounded-xl flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-rose-100 flex items-center justify-center text-rose-700 shrink-0">
-                    <AlertCircle size={18} />
+                <div 
+                  onClick={() => setPreviewFilter('updated')}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                    previewFilter === 'updated' 
+                      ? 'bg-amber-100/70 border-amber-500 shadow-sm' 
+                      : 'bg-amber-50/50 border-amber-200/70 hover:bg-amber-100/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-extrabold text-amber-700 uppercase tracking-wider block">Diperbarui</span>
+                    <RefreshCw size={14} className="text-amber-600" />
                   </div>
-                  <div>
-                    <span className="text-[9px] font-bold text-rose-600 uppercase tracking-wider block leading-none">Total Gagal Validasi</span>
-                    <h4 className="text-lg font-black text-rose-800 leading-none mt-1.5">
-                      {importPreview.failedItems.length} <span className="text-[10px] font-medium text-rose-600">item / baris</span>
-                    </h4>
+                  <h4 className="text-lg font-black text-amber-900 leading-none mt-1.5">
+                    {importPreview.updatedItems?.length ?? 0}
+                  </h4>
+                  <p className="text-[9.5px] text-amber-600/80 mt-1 truncate">Kolom berubah di sistem</p>
+                </div>
+
+                <div 
+                  onClick={() => setPreviewFilter('skipped')}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                    previewFilter === 'skipped' 
+                      ? 'bg-slate-200 border-slate-500 shadow-sm' 
+                      : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-extrabold text-slate-600 uppercase tracking-wider block">Dilewati</span>
+                    <CheckCircle size={14} className="text-slate-500" />
                   </div>
+                  <h4 className="text-lg font-black text-slate-800 leading-none mt-1.5">
+                    {importPreview.skippedItems?.length ?? 0}
+                  </h4>
+                  <p className="text-[9.5px] text-slate-500 mt-1 truncate">Sama persis (tidak duplikat)</p>
+                </div>
+
+                <div 
+                  onClick={() => setPreviewFilter('failed')}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer ${
+                    previewFilter === 'failed' 
+                      ? 'bg-rose-100/70 border-rose-500 shadow-sm' 
+                      : 'bg-rose-50/50 border-rose-200/70 hover:bg-rose-100/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-extrabold text-rose-700 uppercase tracking-wider block">Gagal Validasi</span>
+                    <AlertCircle size={14} className="text-rose-600" />
+                  </div>
+                  <h4 className="text-lg font-black text-rose-900 leading-none mt-1.5">
+                    {importPreview.failedItems.length}
+                  </h4>
+                  <p className="text-[9.5px] text-rose-600/80 mt-1 truncate">Kolom kosong / harga 0</p>
                 </div>
               </div>
 
-              {/* Warnings / Failures Section */}
-              {importPreview.failedItems.length > 0 && (
+              {/* Sub-filter tabs */}
+              <div className="flex items-center gap-1.5 border-b border-slate-100 pb-2 text-[11px] overflow-x-auto scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => setPreviewFilter('all')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    previewFilter === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Semua ({importPreview.originalDataLength})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewFilter('new')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    previewFilter === 'new' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Data Baru ({importPreview.newItems?.length ?? importPreview.successItems.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewFilter('updated')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    previewFilter === 'updated' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Diperbarui ({importPreview.updatedItems?.length ?? 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewFilter('skipped')}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    previewFilter === 'skipped' ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Dilewati ({importPreview.skippedItems?.length ?? 0})
+                </button>
+                {importPreview.failedItems.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewFilter('failed')}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                      previewFilter === 'failed' ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    Gagal ({importPreview.failedItems.length})
+                  </button>
+                )}
+              </div>
+
+              {/* SECTION: UPDATED ITEMS (KOLOM YANG DIUBAH DI SISTEM) */}
+              {(previewFilter === 'all' || previewFilter === 'updated') && (importPreview.updatedItems && importPreview.updatedItems.length > 0) && (
                 <div className="space-y-2">
-                  <span className="text-[9px] font-bold text-rose-600 uppercase tracking-wider block flex items-center gap-1 leading-none">
-                    <AlertCircle size={12} className="text-rose-500" /> Detail Kegagalan Validasi ({importPreview.failedItems.length})
-                  </span>
-                  <div className="bg-rose-50/20 border border-rose-100 rounded-xl max-h-48 overflow-y-auto divide-y divide-rose-100/40">
-                    {importPreview.failedItems.map((fail, i) => (
-                      <div key={i} className="p-3 flex items-start gap-2.5 text-[11px] align-top">
-                        <span className="bg-rose-100 text-rose-700 text-[8.5px] px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider whitespace-nowrap mt-0.5">
-                          Baris / Posisi {fail.rowIndex}
-                        </span>
-                        <div className="space-y-0.5 text-left">
-                          {fail.name && <h5 className="font-extrabold text-slate-700 text-xs">{fail.name}</h5>}
-                          <p className="text-rose-700 leading-relaxed font-semibold">{fail.reason}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold text-amber-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <RefreshCw size={13} className="text-amber-600" /> Data Diperbarui di Sistem ({importPreview.updatedItems.length})
+                    </span>
+                    <span className="text-[10px] text-amber-600 italic">Nama sudah ada & kolom diperbarui</span>
+                  </div>
+                  <div className="bg-amber-50/20 border border-amber-200/80 rounded-xl max-h-56 overflow-y-auto divide-y divide-amber-100/60">
+                    {importPreview.updatedItems.map((item, idx) => (
+                      <div key={idx} className="p-2.5 space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-extrabold uppercase">
+                              Update
+                            </span>
+                            <span className="font-bold text-slate-800">{item.medicine.name}</span>
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {formatRupiah(item.medicine.priceMedis || item.medicine.price)}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {item.changes.map((change, cIdx) => (
+                            <span key={cIdx} className="px-2 py-0.5 rounded-md bg-white border border-amber-200 text-amber-900 text-[10px] font-semibold flex items-center gap-1">
+                              • {change}
+                            </span>
+                          ))}
                         </div>
                       </div>
                     ))}
@@ -3851,68 +4172,135 @@ export default function RoomControl({ medicines, promos, settings, orders, onDat
                 </div>
               )}
 
-              {/* Successful items list */}
-              {importPreview.successItems.length > 0 && (
+              {/* SECTION: NEW ITEMS */}
+              {(previewFilter === 'all' || previewFilter === 'new') && (importPreview.newItems && importPreview.newItems.length > 0) && (
                 <div className="space-y-2">
-                  <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider block flex items-center gap-1 leading-none">
-                    <CheckCircle size={12} className="text-emerald-500" /> Pratinjau Item Sukses ({importPreview.successItems.length})
-                  </span>
-                  <div className="bg-slate-50/50 border border-slate-150 border-slate-200/50 rounded-xl max-h-44 overflow-y-auto divide-y divide-slate-100/80">
-                    {importPreview.successItems.map((item, i) => (
-                      <div key={i} className="p-2.5 flex items-center justify-between text-[11px]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <Plus size={13} className="text-emerald-600" /> Data Baru Ditambahkan ({importPreview.newItems.length})
+                    </span>
+                    <span className="text-[10px] text-emerald-600 italic">Belum ada di sistem</span>
+                  </div>
+                  <div className="bg-emerald-50/20 border border-emerald-200/80 rounded-xl max-h-48 overflow-y-auto divide-y divide-emerald-100/60">
+                    {importPreview.newItems.map((med, idx) => (
+                      <div key={idx} className="p-2.5 flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
-                          <span className="bg-indigo-50 text-indigo-700 text-[8px] px-1 py-0.5 rounded font-bold uppercase tracking-wide">
-                            {item.category || item.type || (importPreview.type === 'excel' ? 'Obat' : 'Data')}
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[9px] font-extrabold uppercase">
+                            Baru
+                          </span>
+                          <div>
+                            <span className="font-bold text-slate-800">{med.name}</span>
+                            <span className="text-[10px] text-slate-400 ml-2">({med.category} • {med.baseUnit || 'Pcs'})</span>
+                          </div>
+                        </div>
+                        <span className="font-mono text-xs text-emerald-700 font-bold">
+                          {formatRupiah(med.priceMedis || med.price)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION: SKIPPED ITEMS */}
+              {(previewFilter === 'all' || previewFilter === 'skipped') && (importPreview.skippedItems && importPreview.skippedItems.length > 0) && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckCircle size={13} className="text-slate-500" /> Data Dilewati / Sama Persis ({importPreview.skippedItems.length})
+                    </span>
+                    <span className="text-[10px] text-slate-500 italic">Tidak diduplikasi</span>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl max-h-40 overflow-y-auto divide-y divide-slate-100">
+                    {importPreview.skippedItems.map((item, idx) => (
+                      <div key={idx} className="p-2 flex items-center justify-between text-[11px]">
+                        <div className="flex items-center gap-2">
+                          <span className="px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 text-[8.5px] font-extrabold">
+                            Lewati
                           </span>
                           <span className="font-semibold text-slate-700">{item.name}</span>
                         </div>
-                        {item.price !== undefined && (
-                          <span className="font-mono text-[10px] text-slate-500 font-bold">{formatRupiah(item.price)}</span>
-                        )}
-                        {item.detail && (
-                          <span className="text-[9px] text-slate-400 italic">{item.detail}</span>
-                        )}
+                        <span className="text-[10px] text-slate-400">Data sama persis</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Learning guide details */}
-              <div className="text-[10px] text-slate-500 bg-slate-50 border border-slate-150 border-slate-100 p-2.5 rounded-xl leading-relaxed">
-                {importPreview.failedItems.length > 0 ? (
-                  <p>
-                    <span className="font-bold text-slate-600">Catatan Penting:</span> Beberapa baris atau modul data mengalami kegagalan validasi di atas. Jika Anda melanjutkan impor, sistem <span className="text-emerald-600 font-bold">hanya akan menyimpan {importPreview.successItems.length} item yang sukses</span>, dan melewatkan baris-baris gagal secara otomatis demi stabilitas data aplikasi.
-                  </p>
+              {/* SECTION: FAILED ITEMS */}
+              {(previewFilter === 'all' || previewFilter === 'failed') && importPreview.failedItems.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] font-extrabold text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <AlertCircle size={13} className="text-rose-600" /> Gagal Validasi ({importPreview.failedItems.length})
+                  </span>
+                  <div className="bg-rose-50/30 border border-rose-200 rounded-xl max-h-44 overflow-y-auto divide-y divide-rose-100">
+                    {importPreview.failedItems.map((fail, i) => (
+                      <div key={i} className="p-2.5 flex items-start gap-2.5 text-xs">
+                        <span className="bg-rose-100 text-rose-700 text-[9px] px-1.5 py-0.5 rounded font-extrabold whitespace-nowrap mt-0.5">
+                          Baris {fail.rowIndex}
+                        </span>
+                        <div>
+                          {fail.name && <h5 className="font-bold text-slate-800 text-xs">{fail.name}</h5>}
+                          <p className="text-rose-700 text-[11px] font-semibold">{fail.reason}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Informative Guidance note */}
+              <div className="text-[11px] text-slate-600 bg-slate-50 border border-slate-200 p-3 rounded-xl leading-relaxed">
+                <span className="font-bold text-slate-800">Ringkasan Sistem:</span>{' '}
+                {importPreview.type === 'excel' ? (
+                  <>
+                    Sistem mendeteksi <strong>{importPreview.newItems?.length || 0} obat baru</strong>,{' '}
+                    <strong>{importPreview.updatedItems?.length || 0} obat diperbarui di sistem</strong>, dan{' '}
+                    <strong>{importPreview.skippedItems?.length || 0} obat dilewati karena data sudah sama</strong>.
+                  </>
                 ) : (
-                  <p>
-                    <span className="text-emerald-600 font-bold">Validasi Berhasil Sempurna!</span> Seluruh item data ({importPreview.successItems.length}) telah lolos penyaringan standar apotek dan siap diintegrasikan penuh ke memori awan utama.
-                  </p>
+                  <>Validasi format file cadangan selesai ({importPreview.successItems.length} item siap dipulihkan).</>
                 )}
               </div>
             </div>
 
             {/* Footer controls */}
-            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex justify-end gap-2.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => setImportPreview(null)}
-                className="px-3.5 py-1.5 hover:bg-slate-200 text-slate-600 font-bold rounded-lg transition-all cursor-pointer text-[11px] active:scale-98"
-              >
-                Batalkan
-              </button>
-              <button
-                type="button"
-                onClick={confirmAndExecuteImport}
-                disabled={importPreview.successItems.length === 0}
-                className={`px-4 py-1.5 font-bold rounded-lg transition-all text-[11px] flex items-center gap-1.5 active:scale-98 shadow-xs ${
-                  importPreview.successItems.length > 0 
-                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer' 
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                }`}
-              >
-                <Check size={12} /> Konfirmasi & Impor Masuk
-              </button>
+            <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3 shrink-0">
+              <span className="text-[11px] text-slate-500 font-medium hidden sm:inline">
+                {importPreview.failedItems.length > 0 && 'Baris gagal tidak akan mengganggu baris sukses.'}
+              </span>
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={() => setImportPreview(null)}
+                  className="px-4 py-2 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all cursor-pointer text-xs"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmAndExecuteImport}
+                  disabled={
+                    importPreview.type === 'excel'
+                      ? ((importPreview.newItems?.length || 0) + (importPreview.updatedItems?.length || 0) === 0)
+                      : importPreview.successItems.length === 0
+                  }
+                  className={`px-5 py-2 font-bold rounded-xl transition-all text-xs flex items-center gap-2 shadow-xs cursor-pointer ${
+                    (importPreview.type === 'excel'
+                      ? ((importPreview.newItems?.length || 0) + (importPreview.updatedItems?.length || 0) > 0)
+                      : importPreview.successItems.length > 0)
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20'
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  <Check size={14} />
+                  <span>
+                    {importPreview.type === 'excel'
+                      ? `Simpan & Terapkan (${importPreview.newItems?.length || 0} Baru, ${importPreview.updatedItems?.length || 0} Diperbarui)`
+                      : 'Konfirmasi Pulihkan Data'}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

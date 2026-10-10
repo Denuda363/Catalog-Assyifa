@@ -10,6 +10,7 @@ import PromoView from './components/PromoView';
 import RoomControl from './components/RoomControl';
 import CartModal from './components/CartModal';
 import { PWAInstallButton } from './components/PWAInstallButton';
+import { UserGuideModal } from './components/UserGuideModal';
 import HomeView from './components/HomeView';
 import ProfileView from './components/ProfileView';
 import { 
@@ -34,7 +35,8 @@ import {
   Sparkles,
   ShoppingCart,
   Home,
-  User
+  User,
+  HelpCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -48,6 +50,7 @@ export default function App() {
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isUserGuideOpen, setIsUserGuideOpen] = useState(false);
   
   const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'auto'>(() => {
     return (localStorage.getItem('themeMode') as 'light' | 'dark' | 'auto') || (localStorage.getItem('theme') === 'dark' ? 'dark' : 'light');
@@ -376,6 +379,18 @@ export default function App() {
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <PWAInstallButton />
+
+            {/* Panduan Penggunaan untuk Pengguna Umum */}
+            <button
+              id="navbar-user-guide-btn"
+              onClick={() => setIsUserGuideOpen(true)}
+              className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/60 dark:border-blue-800/40 transition-colors shadow-2xs flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+              title="Panduan Penggunaan untuk Pengunjung & Pelanggan"
+            >
+              <HelpCircle size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
+              <span className="hidden sm:inline">Panduan</span>
+            </button>
+
             {/* Dark mode toggle */}
             <button
               onClick={() => setThemeMode(prev => prev === 'light' ? 'dark' : prev === 'dark' ? 'auto' : 'light')}
@@ -708,6 +723,13 @@ export default function App() {
         setCart={setCart}
         settings={settings}
         onNavigate={(tab) => { setIsCartOpen(false); setActiveTab(tab); }}
+      />
+
+      {/* General User Guide Modal */}
+      <UserGuideModal
+        isOpen={isUserGuideOpen}
+        onClose={() => setIsUserGuideOpen(false)}
+        whatsappNumber={settings.whatsappNumber}
       />
     </div>
   );
